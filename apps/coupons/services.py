@@ -1,0 +1,1 @@
+"""Transactional coupons state changes."""

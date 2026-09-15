@@ -1,0 +1,3 @@
+"""Booths API routes."""
+
+urlpatterns = []

@@ -1,0 +1,3 @@
+"""Coupons API routes."""
+
+urlpatterns = []

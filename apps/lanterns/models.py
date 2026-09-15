@@ -1,0 +1,1 @@
+"""Lanterns database models."""

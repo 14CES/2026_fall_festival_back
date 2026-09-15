@@ -1,0 +1,3 @@
+"""Lanterns API routes."""
+
+urlpatterns = []

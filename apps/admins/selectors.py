@@ -1,0 +1,1 @@
+"""Read-only admins queries."""

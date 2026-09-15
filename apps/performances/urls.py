@@ -1,0 +1,3 @@
+"""Performances API routes."""
+
+urlpatterns = []
