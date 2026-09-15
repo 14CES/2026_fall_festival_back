@@ -158,20 +158,39 @@ ruff format .
 
 - `origin`: 본인의 개인 포크
 - `upstream`: `LikeLion-at-DGU/2026_fall_festival_back`
-- PR base: `upstream/main`
+- `main`: 배포 가능한 안정 버전을 관리하는 브랜치
+- `develop`: 기능을 통합하는 기본 개발 브랜치이자 일반 PR의 대상 브랜치
+- PR base: `upstream/develop`
 - PR head: `origin`의 작업 브랜치
-- `upstream/main`에 직접 push하지 않습니다.
+- `upstream/main`과 `upstream/develop`에 직접 push하지 않습니다.
+- 기능이 충분히 통합되고 배포 준비가 끝나면 `develop`에서 `main`으로 별도 PR을 생성합니다.
 
-### 1. 작업 전 개인 main 동기화
+전체 흐름은 다음과 같습니다.
 
-```bash
-git switch main
-git fetch upstream
-git merge --ff-only upstream/main
-git push origin main
+```text
+개인 작업 브랜치 -> 중앙 저장소 develop -> 중앙 저장소 main
 ```
 
-### 2. Issue 생성 후 브랜치 생성
+### 1. 최초 한 번 개인 develop 준비
+
+```bash
+git fetch upstream
+git switch -c develop upstream/develop
+git push -u origin develop
+```
+
+이미 로컬에 `develop` 브랜치가 있다면 새로 만들지 않고 해당 브랜치로 이동합니다.
+
+### 2. 작업 전 개인 develop 동기화
+
+```bash
+git switch develop
+git fetch upstream
+git merge --ff-only upstream/develop
+git push origin develop
+```
+
+### 3. Issue 생성 후 작업 브랜치 생성
 
 ```bash
 git switch -c feat/12-lantern-create
@@ -188,7 +207,9 @@ git switch -c feat/12-lantern-create
 | `docs` | 문서 변경 |
 | `chore` | 설정·의존성·개발환경 변경 |
 
-### 3. 커밋과 개인 포크 push
+작업 브랜치는 최신 `develop`에서 생성합니다. 개인 포크 안에서 브랜치를 어떻게 관리할지는 자유지만, 하나의 브랜치에는 하나의 Issue에 해당하는 작업만 담는 것을 권장합니다.
+
+### 4. 커밋과 개인 포크 push
 
 ```bash
 git add <변경한 파일>
@@ -198,12 +219,12 @@ git push -u origin feat/12-lantern-create
 
 커밋 형식은 `<작업유형>: <변경 내용> (#이슈번호)`를 권장합니다.
 
-### 4. Pull Request
+### 5. Pull Request
 
 GitHub에서 다음 방향으로 PR을 생성합니다.
 
 ```text
-개인 포크의 작업 브랜치 -> LikeLion-at-DGU/2026_fall_festival_back의 main
+개인 포크의 작업 브랜치 -> LikeLion-at-DGU/2026_fall_festival_back의 develop
 ```
 
 PR에는 아래 내용을 포함합니다.
@@ -214,7 +235,11 @@ PR에는 아래 내용을 포함합니다.
 - 테스트 방법과 결과
 - 새로운 환경변수나 마이그레이션 여부
 
-승인 담당 팀원(조수아, 장진호, 이희수, 이승우 중 2명)에게 리뷰받고, 리뷰가 끝난 뒤 머지합니다. 충돌은 본인의 작업 브랜치에서 해결한 후 PR을 갱신합니다.
+승인 담당 팀원(조수아, 장진호, 이희수, 이승우 중 2명)에게 리뷰받고, 리뷰가 끝난 뒤 머지합니다. 충돌은 본인의 작업 브랜치에 최신 `upstream/develop`을 반영해 해결한 후 PR을 갱신합니다.
+
+### 6. main 반영
+
+`develop`에 기능이 충분히 쌓이고 테스트가 완료되면 `develop`에서 `main`으로 별도 PR을 생성합니다. `main`에는 개별 기능 브랜치를 바로 머지하지 않습니다.
 
 ## 환경변수
 
