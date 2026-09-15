@@ -1,0 +1,3 @@
+"""Notices API routes."""
+
+urlpatterns = []

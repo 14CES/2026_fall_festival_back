@@ -1,0 +1,1 @@
+"""Festival notices domain."""

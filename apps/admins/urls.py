@@ -1,0 +1,3 @@
+"""Admins API routes."""
+
+urlpatterns = []

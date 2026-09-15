@@ -1,0 +1,1 @@
+"""Booths API views."""
