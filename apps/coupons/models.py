@@ -75,4 +75,4 @@ class Coupon(models.Model):
         ]
 
     def __str__(self):
-        return f"Coupon {self.id} - {self.status}"
+        return f"Coupon {self.coupon_id} - {self.status}"
