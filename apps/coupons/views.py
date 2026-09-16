@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from django.utils import timezone
 
 from django.db import transaction
 from rest_framework import status
@@ -31,7 +31,7 @@ class CouponIssueView(APIView):
         # 같은 유저가 동시에 쿠폰 발급 요청하는 것 방지
         user = User.objects.select_for_update().get(pk=user.pk)
 
-        today = date.today()
+        today = timezone.localdate()
 
         # 오늘 이미 쿠폰을 받은 적 있는지 확인
         already_issued = Coupon.objects.filter(user=user, issued_date=today).exists()
@@ -89,7 +89,7 @@ class CouponScratchView(APIView):
             )
 
         # 당일 쿠폰만 스크래치 가능
-        if coupon.issued_date != date.today():
+        if coupon.issued_date != timezone.localdate():
             coupon.status = Coupon.Status.EXPIRED
 
             coupon.save(
@@ -107,7 +107,7 @@ class CouponScratchView(APIView):
         # daily_sequence가 당첨번호 DB에 존재하는지 확인
         is_win = WinningNumber.objects.filter(number=coupon.daily_sequence).exists()
 
-        coupon.scratched_at = datetime.now()
+        coupon.scratched_at = timezone.now()
 
         # 당첨
         if is_win:
