@@ -1,6 +1,5 @@
-from django.utils import timezone
-
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -189,7 +188,8 @@ class CouponUseView(APIView):
         serializer = CouponUseSerializer(data=request.data)
 
         if not serializer.is_valid():
-            # verify_code 누락 시 명세서에 정의된 문구 사용, 그 외(user 없음 등)는 DRF 검증 메시지 그대로 전달
+            # verify_code 누락 시 명세서 문구 사용, 그 외(user 없음 등)는
+            # DRF 검증 메시지 그대로 전달
             errors = (
                 {"verify_code": "확인 코드를 입력해주세요."}
                 if "verify_code" in serializer.errors

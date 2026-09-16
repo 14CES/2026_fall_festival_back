@@ -4,23 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('coupons', '0001_initial'),
+        ("coupons", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='BoothVerifyCode',
+            name="BoothVerifyCode",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('booth_name', models.CharField(max_length=100)),
-                ('code', models.CharField(max_length=20, unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("booth_name", models.CharField(max_length=100)),
+                ("code", models.CharField(max_length=20, unique=True)),
             ],
         ),
         migrations.AddField(
-            model_name='coupon',
-            name='used_booth_name',
+            model_name="coupon",
+            name="used_booth_name",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
     ]
