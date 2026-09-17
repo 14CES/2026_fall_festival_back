@@ -66,8 +66,6 @@ class CouponIssueView(APIView):
 
 
 # 쿠폰 긁기
-
-
 class CouponScratchView(APIView):
     @transaction.atomic
     def post(self, request, coupon_id):
