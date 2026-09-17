@@ -1,11 +1,11 @@
-from django.utils import timezone
-
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
+    BoothVerifyCode,
     Coupon,
     DailyCouponCounter,
     User,
@@ -13,7 +13,9 @@ from .models import (
 )
 from .serializers import (
     CouponIssueSerializer,
+    CouponListItemSerializer,
     CouponSerializer,
+    CouponUseSerializer,
 )
 
 
@@ -135,3 +137,176 @@ class CouponScratchView(APIView):
         )
 
         return Response(CouponSerializer(coupon).data, status=status.HTTP_200_OK)
+
+
+# 나의 쿠폰 목록 조회
+class CouponListView(APIView):
+    def get(self, request):
+        # TODO: 로그인 붙으면 request.user로 대체
+        user_id = request.query_params.get("user")
+
+        if not user_id:
+            return Response(
+                {
+                    "success": False,
+                    "code": "UNAUTHORIZED",
+                    "message": "로그인이 필요합니다.",
+                    "errors": {},
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        coupons = Coupon.objects.filter(user_id=user_id, deleted_at__isnull=True).order_by(
+            "-created_at"
+        )
+
+        status_filter = request.query_params.get("status")
+
+        if status_filter:
+            coupons = coupons.filter(status=status_filter)
+
+        items = CouponListItemSerializer(coupons, many=True).data
+
+        return Response(
+            {
+                "success": True,
+                "code": "COUPON_LIST_SUCCESS",
+                "message": "쿠폰 목록을 조회했습니다.",
+                "data": {
+                    "total_count": len(items),
+                    "items": items,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# 쿠폰 사용 처리 (확인 코드 검증)
+class CouponUseView(APIView):
+    @transaction.atomic
+    def post(self, request, coupon_id):
+        serializer = CouponUseSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            # verify_code 누락 시 명세서 문구 사용, 그 외(user 없음 등)는
+            # DRF 검증 메시지 그대로 전달
+            errors = (
+                {"verify_code": "확인 코드를 입력해주세요."}
+                if "verify_code" in serializer.errors
+                else serializer.errors
+            )
+
+            return Response(
+                {
+                    "success": False,
+                    "code": "INVALID_INPUT",
+                    "message": "필수 입력값이 누락되었습니다.",
+                    "errors": errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user_id = serializer.validated_data["user"].pk
+
+        verify_code = serializer.validated_data["verify_code"]
+
+        try:
+            # 본인 소유 쿠폰 잠금 (동시 중복 사용 방지)
+            coupon = Coupon.objects.select_for_update().get(
+                coupon_id=coupon_id, user_id=user_id, deleted_at__isnull=True
+            )
+
+        except Coupon.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "code": "COUPON_NOT_USABLE",
+                    "message": "사용할 수 없는 쿠폰입니다.",
+                    "errors": {
+                        "status": "이미 사용되었거나 당첨 쿠폰이 아니거나 기간이 만료되었습니다."
+                    },
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # 이미 사용된 쿠폰
+        if coupon.status == Coupon.Status.USED:
+            return Response(
+                {
+                    "success": False,
+                    "code": "COUPON_ALREADY_USED",
+                    "message": "이미 사용된 쿠폰입니다.",
+                    "errors": {},
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # 기간 만료 (오늘 발급된 쿠폰이 아니거나 이미 만료 처리됨)
+        if coupon.status == Coupon.Status.EXPIRED or coupon.issued_date != timezone.localdate():
+            return Response(
+                {
+                    "success": False,
+                    "code": "COUPON_EXPIRED",
+                    "message": "사용 기간이 만료된 쿠폰입니다.",
+                    "errors": {},
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # 당첨 쿠폰이 아님 (꽝이거나 아직 스크래치 안 함)
+        if coupon.status != Coupon.Status.WIN:
+            return Response(
+                {
+                    "success": False,
+                    "code": "COUPON_NOT_WIN",
+                    "message": "당첨된 쿠폰이 아닙니다.",
+                    "errors": {},
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        matched_booth = BoothVerifyCode.objects.filter(code=verify_code).first()
+
+        if not matched_booth:
+            return Response(
+                {
+                    "success": False,
+                    "code": "INVALID_VERIFY_CODE",
+                    "message": "올바른 코드가 아닙니다.",
+                    "errors": {"verify_code": "확인 코드가 일치하지 않습니다."},
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        coupon.status = Coupon.Status.USED
+
+        coupon.used_at = timezone.now()
+
+        coupon.used_booth_name = matched_booth.booth_name
+
+        coupon.save(
+            update_fields=[
+                "status",
+                "used_at",
+                "used_booth_name",
+                "updated_at",
+            ]
+        )
+
+        return Response(
+            {
+                "success": True,
+                "code": "COUPON_USE_SUCCESS",
+                "message": "쿠폰이 사용 처리되었습니다.",
+                "data": {
+                    "coupon_id": coupon.coupon_id,
+                    "status": coupon.status,
+                    "used_at": coupon.used_at,
+                    "used_booth": {
+                        "booth_id": matched_booth.id,
+                        "booth_name": matched_booth.booth_name,
+                    },
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
