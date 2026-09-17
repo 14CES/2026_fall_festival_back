@@ -95,7 +95,6 @@ class CouponScratchView(APIView):
             coupon.save(
                 update_fields=[
                     "status",
-                    "updated_at",
                 ]
             )
 
@@ -117,7 +116,6 @@ class CouponScratchView(APIView):
                 update_fields=[
                     "status",
                     "scratched_at",
-                    "updated_at",
                 ]
             )
 
@@ -130,7 +128,6 @@ class CouponScratchView(APIView):
             update_fields=[
                 "status",
                 "scratched_at",
-                "updated_at",
             ]
         )
 
