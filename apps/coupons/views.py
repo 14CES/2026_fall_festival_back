@@ -284,7 +284,6 @@ class CouponUseView(APIView):
                 "status",
                 "used_at",
                 "used_booth_name",
-                "updated_at",
             ]
         )
 
