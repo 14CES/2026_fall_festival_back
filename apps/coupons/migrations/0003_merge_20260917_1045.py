@@ -4,11 +4,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('coupons', '0002_boothverifycode_coupon_used_booth_name'),
-        ('coupons', '0002_remove_coupon_created_at_remove_coupon_updated_at'),
+        ("coupons", "0002_boothverifycode_coupon_used_booth_name"),
+        ("coupons", "0002_remove_coupon_created_at_remove_coupon_updated_at"),
     ]
 
-    operations = [
-    ]
+    operations = []

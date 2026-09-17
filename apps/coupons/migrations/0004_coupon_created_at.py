@@ -5,15 +5,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('coupons', '0003_merge_20260917_1045'),
+        ("coupons", "0003_merge_20260917_1045"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='coupon',
-            name='created_at',
+            model_name="coupon",
+            name="created_at",
             field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now),
             preserve_default=False,
         ),

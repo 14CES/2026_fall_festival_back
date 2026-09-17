@@ -58,10 +58,10 @@ class Coupon(models.Model):
 
     # 사용 처리된 부스 이름 (TODO: booths.Booth 모델 생기면 FK로 교체)
     used_booth_name = models.CharField(max_length=100, null=True, blank=True)
-    
+
     # 실제 쿠폰이 DB에 생성된 시각
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
