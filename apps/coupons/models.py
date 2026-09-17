@@ -56,6 +56,9 @@ class Coupon(models.Model):
     # 사용 완료 시간
     used_at = models.DateTimeField(null=True, blank=True)
 
+    # 사용 처리된 부스 이름 (TODO: booths.Booth 모델 생기면 FK로 교체)
+    used_booth_name = models.CharField(max_length=100, null=True, blank=True)
+
     
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -73,3 +76,13 @@ class Coupon(models.Model):
 
     def __str__(self):
         return f"Coupon {self.coupon_id} - {self.status}"
+
+
+# 부스별 확인 코드 (TODO: booths.Booth 모델 생기면 booth_name 대신 FK로 교체)
+class BoothVerifyCode(models.Model):
+    booth_name = models.CharField(max_length=100)
+
+    code = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return f"{self.booth_name} - {self.code}"
