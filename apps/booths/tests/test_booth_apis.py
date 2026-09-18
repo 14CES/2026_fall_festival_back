@@ -151,3 +151,22 @@ def test_booth_list_rejects_invalid_time_slot_and_category(client, booths):
         response.json()["errors"]["category"]
         == "BOOTH / TOILET / ALCOHOL / ECO 중에서 선택해주세요."
     )
+
+
+@pytest.mark.django_db
+def test_booth_detail_includes_operations_and_menus(client, booths):
+    booth = booths["popular"]
+    response = client.get(f"/api/booths/{booth.id}/")
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["booth_id"] == booth.id
+    assert data["has_my_lantern"] is False
+    assert len(data["operations"]) == 1
+    assert [menu["name"] for menu in data["menus"]] == ["제육볶음", "소주"]
+
+
+@pytest.mark.django_db
+def test_booth_detail_returns_404_for_missing_booth(client, booths):
+    response = client.get("/api/booths/999999/")
+    assert response.status_code == 404
+    assert response.json()["code"] == "BOOTH_NOT_FOUND"

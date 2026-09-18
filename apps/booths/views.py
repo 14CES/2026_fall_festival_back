@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.views import APIView
 
 from common.responses import error_response, success_response
@@ -14,8 +15,8 @@ from .constants import (
     FESTIVAL_DATES,
 )
 from .models import BoothOperation
-from .selectors import booth_operations_on
-from .serializers import BoothListItemSerializer
+from .selectors import booth_detail, booth_operations_on
+from .serializers import BoothDetailSerializer, BoothListItemSerializer
 
 
 # 장소 목록 조회 (지도 핀 + 카드 리스트)
@@ -82,4 +83,23 @@ class BoothListView(APIView):
                 "total_count": len(items),
                 "booths": items,
             },
+        )
+
+
+# 장소 상세 조회 (부스 설명 바텀시트)
+class BoothDetailView(APIView):
+    def get(self, request, booth_id):
+        booth = booth_detail(booth_id)
+
+        if booth is None:
+            return error_response(
+                "BOOTH_NOT_FOUND",
+                "장소를 찾을 수 없습니다.",
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return success_response(
+            "BOOTH_DETAIL_SUCCESS",
+            "장소 정보를 조회했습니다.",
+            BoothDetailSerializer(booth).data,
         )

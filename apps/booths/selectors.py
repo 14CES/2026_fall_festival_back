@@ -1,9 +1,9 @@
 """Read-only booths queries."""
 
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, Prefetch, Value, When
 
 from .constants import BOOTH_CHIP, BOOTH_CHIP_CATEGORIES
-from .models import Booth, BoothOperation
+from .models import Booth, BoothMenu, BoothOperation
 
 
 def booth_operations_on(festival_date, time_slot, category=None):
@@ -33,3 +33,22 @@ def booth_operations_on(festival_date, time_slot, category=None):
     if category:
         queryset = queryset.filter(booth__category=category)
     return queryset.order_by("booth__name")
+
+
+def booth_detail(booth_id):
+    return (
+        Booth.objects.filter(pk=booth_id, deleted_at__isnull=True)
+        .prefetch_related(
+            Prefetch(
+                "operations",
+                queryset=BoothOperation.objects.filter(deleted_at__isnull=True).order_by(
+                    "festival_date", "time_slot"
+                ),
+            ),
+            Prefetch(
+                "menus",
+                queryset=BoothMenu.objects.filter(deleted_at__isnull=True).order_by("sort_order"),
+            ),
+        )
+        .first()
+    )
