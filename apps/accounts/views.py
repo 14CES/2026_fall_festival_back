@@ -1,65 +1,62 @@
 """Accounts API views."""
 
-import requests
-import jwt
 from datetime import datetime, timedelta
+
+import jwt
+import requests
 from django.conf import settings
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .models import User
-from .serializers import UserSerializer, LoginSerializer
+from .serializers import LoginSerializer, UserSerializer
+
 
 class KakaoLoginView(APIView):
     """카카오 로그인 처리"""
 
     def post(self, request):
-        #코드 검증
+        # 코드 검증
         serializer = LoginSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(
                 {
-                    "success" : False,
-                    "code" : "400",
-                    "message" : "입력값이 올바르지 않습니다.",
-                    "errors": serializer.errors
+                    "success": False,
+                    "code": "400",
+                    "message": "입력값이 올바르지 않습니다.",
+                    "errors": serializer.errors,
                 },
-                status = status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        code = serializer.validated_data['code']
+        code = serializer.validated_data["code"]
 
-
-
-        #코드 검증 후 access_token 추출
+        # 코드 검증 후 access_token 추출
         kakao_token_url = "https://kauth.kakao.com/oauth/token"
 
         token_params = {
-            "grant_type" : "authorization_code",
-            "client_id" : settings.KAKAO_CLIENT_ID,
-            "redirect_uri" : settings.KAKAO_REDIRECT_URI,
-            "code" : code,
+            "grant_type": "authorization_code",
+            "client_id": settings.KAKAO_CLIENT_ID,
+            "redirect_uri": settings.KAKAO_REDIRECT_URI,
+            "code": code,
         }
 
         try:
-            token_response = requests.post(
-                kakao_token_url,
-                data = token_params
-            )
+            token_response = requests.post(kakao_token_url, data=token_params)
 
             token_response.raise_for_status()
 
         except requests.exceptions.RequestException as error:
-
             return Response(
                 {
-                    "success" : False,
-                    "code" : "502",
-                    "message" : "카카오 서버 연결 실패",
-                    "errors" : {"kakao_api" : str(error)}
+                    "success": False,
+                    "code": "502",
+                    "message": "카카오 서버 연결 실패",
+                    "errors": {"kakao_api": str(error)},
                 },
-                status = status.HTTP_502_BAD_GATEWAY
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         token_data = token_response.json()
@@ -68,55 +65,47 @@ class KakaoLoginView(APIView):
         if not kakao_access_token:
             return Response(
                 {
-                    "success" : False,
-                    "code" : "401",
-                    "message" : "카카오 인증에 실패했습니다.",
-                    "errors" : {"kakao_auth" : "유효하지않은 인증 코드"}
+                    "success": False,
+                    "code": "401",
+                    "message": "카카오 인증에 실패했습니다.",
+                    "errors": {"kakao_auth": "유효하지않은 인증 코드"},
                 },
-                status = status.HTTP_401_UNAUTHORIZED
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
-
-
-        #access_token으로 사용자 정보 조회
+        # access_token으로 사용자 정보 조회
         kakao_user_url = "https://kapi.kakao.com/v2/user/me"
 
         headers = {
-            "Authorization" : f"Bearer {kakao_access_token}",
-            "Content-type" : "application/x-www-form-urlencoded;charset=utf-8"
+            "Authorization": f"Bearer {kakao_access_token}",
+            "Content-type": "application/x-www-form-urlencoded;charset=utf-8",
         }
 
         try:
-            user_response = requests.get(
-                kakao_user_url,
-                headers = headers
-            )
+            user_response = requests.get(kakao_user_url, headers=headers)
 
             user_response.raise_for_status()
 
-        except requests.exceptions.RequestException as error:
-
+        except requests.exceptions.RequestException:
             return Response(
                 {
-                    "success" : False,
-                    "code" : "401",
-                    "message" : "카카오 사용자 정보 조회 실패",
-                    "errors" : {"access_token" : "유효하지 않은 토큰"}
+                    "success": False,
+                    "code": "401",
+                    "message": "카카오 사용자 정보 조회 실패",
+                    "errors": {"access_token": "유효하지 않은 토큰"},
                 },
-                status = status.HTTP_401_UNAUTHORIZED
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         kakao_user_data = user_response.json()
 
         kakao_id = kakao_user_data.get("id")
-        nickname = (
-            kakao_user_data.get("properties", {}).get("nickname") or
-            kakao_user_data.get("kakao_account", {}).get("profile", {}).get("nickname")
-        )
-        profile_image = (
-                    kakao_user_data.get("properties", {}).get("profile_image") or
-                    kakao_user_data.get("kakao_account", {}).get("profile", {}).get("profile_image")
-                )
+        nickname = kakao_user_data.get("properties", {}).get("nickname") or kakao_user_data.get(
+            "kakao_account", {}
+        ).get("profile", {}).get("nickname")
+        profile_image = kakao_user_data.get("properties", {}).get(
+            "profile_image"
+        ) or kakao_user_data.get("kakao_account", {}).get("profile", {}).get("profile_image")
 
         if not kakao_id or not nickname:
             return Response(
@@ -127,16 +116,14 @@ class KakaoLoginView(APIView):
                     "errors": {
                         "kakao_id": "kakao_id가 없습니다" if not kakao_id else None,
                         "nickname": "nickname이 없습니다" if not nickname else None,
-                    }
+                    },
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-
-
-        #DB에 사용자 저장 및 조회
+        # DB에 사용자 저장 및 조회
         try:
-            user = User.objects.get(kakao_id = kakao_id)
+            user = User.objects.get(kakao_id=kakao_id)
             user.nickname = nickname
             user.profile_image = profile_image
             user.save()
@@ -145,9 +132,7 @@ class KakaoLoginView(APIView):
 
         except User.DoesNotExist:
             user = User.objects.create(
-                kakao_id = kakao_id,
-                nickname = nickname,
-                profile_image = profile_image
+                kakao_id=kakao_id, nickname=nickname, profile_image=profile_image
             )
 
             is_new_user = True
@@ -155,33 +140,27 @@ class KakaoLoginView(APIView):
         except Exception as error:
             return Response(
                 {
-                    "success" : False,
-                    "code" : "DB_ERROR",
-                    "message" : "사용자 저장 중 오류가 발생했습니다.",
-                    "errors" : {"database" : str(error)}
+                    "success": False,
+                    "code": "DB_ERROR",
+                    "message": "사용자 저장 중 오류가 발생했습니다.",
+                    "errors": {"database": str(error)},
                 },
-                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
-
-        #jwt_token 생성
+        # jwt_token 생성
         def generate_jwt_token(user_id):
 
             now = datetime.now()
 
             expired_date = now + timedelta(hours=24)
 
-            payload = {
-                "user_id" : user_id,
-                "iat" : now.timestamp(),
-                "exp" : expired_date.timestamp()
-            }    
+            payload = {"user_id": user_id, "iat": now.timestamp(), "exp": expired_date.timestamp()}
 
             token = jwt.encode(
                 payload,
                 settings.SECRET_KEY,
-                algorithm='HS256'       # 대칭키 암호화
+                algorithm="HS256",  # 대칭키 암호화
             )
 
             return token
@@ -190,19 +169,17 @@ class KakaoLoginView(APIView):
             access_token = generate_jwt_token(user.id)
 
         except Exception as error:
-            
             return Response(
                 {
                     "success": False,
                     "code": "TOKEN_GENERATION_ERROR",
                     "message": "토큰 생성 중 오류가 발생했습니다",
-                    "errors": {"token": str(error)}
+                    "errors": {"token": str(error)},
                 },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )        
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-
-        #최종 응답 반환
+        # 최종 응답 반환
         return Response(
             {
                 "success": True,
@@ -210,8 +187,9 @@ class KakaoLoginView(APIView):
                 "message": "카카오톡 1초 로그인 성공",
                 "data": {
                     "access_token": access_token,
-                    "user": UserSerializer(user).data
-                }
+                    "is_new_user": is_new_user,
+                    "user": UserSerializer(user).data,
+                },
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )

@@ -1,8 +1,9 @@
 """Accounts API routes."""
 
 from django.urls import path
+
 from .views import KakaoLoginView
 
 urlpatterns = [
-    path('login/', KakaoLoginView.as_view(), name = 'kakao-login'),
+    path("login/", KakaoLoginView.as_view(), name="kakao-login"),
 ]
