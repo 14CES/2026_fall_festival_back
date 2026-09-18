@@ -1,67 +1,29 @@
-"""Shared model primitives."""
+"""공통 Soft Delete 모델."""
 
 from django.db import models
 from django.utils import timezone
 
 
-class BaseTimeModel(models.Model):
-    """Abstract base model tracking creation and modification timestamps."""
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-
-
 class SoftDeleteQuerySet(models.QuerySet):
-    """QuerySet that excludes soft-deleted records by default."""
-
-    def delete(self):
-        return self.update(deleted_at=timezone.now())
-
-    def hard_delete(self):
-        return super().delete()
+    """삭제되지 않은 데이터 조회 및 Soft Delete 기능."""
 
     def alive(self):
+        # 삭제되지 않은 데이터만 조회
         return self.filter(deleted_at__isnull=True)
 
-    def dead(self):
-        return self.filter(deleted_at__isnull=False)
+    def soft_delete(self, deleted_at=None):
+        # 실제 삭제 대신 deleted_at에 삭제 시각 저장
+        return self.update(deleted_at=deleted_at or timezone.now())
 
 
-class SoftDeleteManager(models.Manager):
-    """Manager returning only active (non-deleted) records."""
+class SoftDeleteModel(models.Model):
+    """생성, 수정, 삭제 시각을 공통으로 관리하는 모델."""
 
-    def get_queryset(self):
-        return SoftDeleteQuerySet(self.model, using=self._db).filter(deleted_at__isnull=True)
-
-
-class AllObjectsManager(models.Manager):
-    """Manager returning all records including soft-deleted ones."""
-
-    def get_queryset(self):
-        return SoftDeleteQuerySet(self.model, using=self._db)
-
-
-class SoftDeleteModel(BaseTimeModel):
-    """Abstract base model providing soft delete functionality."""
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    objects = SoftDeleteManager()
-    all_objects = AllObjectsManager()
+    objects = SoftDeleteQuerySet.as_manager()
 
     class Meta:
         abstract = True
-
-    def delete(self, using=None, keep_parents=False):
-        self.deleted_at = timezone.now()
-        self.save(update_fields=["deleted_at", "updated_at"])
-
-    def hard_delete(self, using=None, keep_parents=False):
-        super().delete(using=using, keep_parents=keep_parents)
-
-    def restore(self):
-        self.deleted_at = None
-        self.save(update_fields=["deleted_at", "updated_at"])

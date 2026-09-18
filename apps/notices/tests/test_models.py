@@ -39,32 +39,12 @@ class TestNoticeModel:
             title="삭제 테스트 공지",
             content="삭제될 예정입니다.",
         )
-        assert Notice.objects.count() == 1
-        assert Notice.all_objects.count() == 1
+        assert Notice.objects.alive().count() == 1
 
-        # Soft delete
-        notice.delete()
+        # Soft delete via queryset
+        Notice.objects.filter(id=notice.id).soft_delete()
         notice.refresh_from_db()
 
         assert notice.deleted_at is not None
-        assert Notice.objects.count() == 0
-        assert Notice.all_objects.count() == 1
-        assert Notice.all_objects.filter(id=notice.id).exists()
-
-        # Restore
-        notice.restore()
-        notice.refresh_from_db()
-
-        assert notice.deleted_at is None
-        assert Notice.objects.count() == 1
-
-    def test_hard_delete(self):
-        notice = Notice.objects.create(
-            title="영구 삭제 테스트 공지",
-            content="영구 삭제됩니다.",
-        )
-        notice_id = notice.id
-        notice.hard_delete()
-
-        assert Notice.objects.filter(id=notice_id).count() == 0
-        assert Notice.all_objects.filter(id=notice_id).count() == 0
+        assert Notice.objects.alive().count() == 0
+        assert Notice.objects.filter(id=notice.id).exists()
