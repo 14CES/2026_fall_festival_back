@@ -1,0 +1,153 @@
+"""Booth list and detail API tests."""
+
+from datetime import date, time
+
+import pytest
+from rest_framework.test import APIClient
+
+from apps.booths.models import Booth, BoothMenu, BoothOperation
+
+DATE_1 = date(2026, 9, 29)
+
+
+@pytest.fixture
+def client():
+    return APIClient()
+
+
+@pytest.fixture
+def booths(db):
+    popular = Booth.objects.create(
+        name="멋쟁이사자처럼 주점",
+        subtitle="사회과학대학 광고홍보학과",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ETC,
+        lantern_count=32,
+    )
+    normal = Booth.objects.create(
+        name="가나다 부스",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ETC,
+        lantern_count=5,
+    )
+    collab = Booth.objects.create(
+        name="총학생회 협업 부스",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.COLLAB,
+        lantern_count=1,
+    )
+    alcohol = Booth.objects.create(
+        name="건축공학과 주점",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ALCOHOL,
+        lantern_count=0,
+    )
+    no_operation = Booth.objects.create(
+        name="운영정보 없는 부스",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ETC,
+    )
+    toilet = Booth.objects.create(
+        name="명진관 화장실",
+        place_type=Booth.PlaceType.FACILITY,
+        category=Booth.Category.TOILET,
+        directions="명진관 1층 동쪽 출입구에서 50m 직진",
+    )
+    for booth in [popular, normal, collab, alcohol, toilet]:
+        BoothOperation.objects.create(
+            booth=booth,
+            festival_date=DATE_1,
+            time_slot=BoothOperation.TimeSlot.NIGHT,
+            open_at=time(17, 30),
+            close_at=time(22, 0),
+        )
+    BoothMenu.objects.create(booth=popular, name="소주", price=4000, sort_order=2)
+    BoothMenu.objects.create(booth=popular, name="제육볶음", price=12000, sort_order=1)
+    return {
+        "popular": popular,
+        "normal": normal,
+        "collab": collab,
+        "alcohol": alcohol,
+        "no_operation": no_operation,
+        "toilet": toilet,
+    }
+
+
+@pytest.mark.django_db
+def test_booth_list_returns_only_operating_booths(client, booths):
+    response = client.get("/api/booths/", {"date": "2026-09-29", "time_slot": "NIGHT"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["code"] == "BOOTH_LIST_SUCCESS"
+    names = [item["name"] for item in body["data"]["booths"]]
+    assert "운영정보 없는 부스" not in names
+    assert body["data"]["total_count"] == 5
+
+
+@pytest.mark.django_db
+def test_booth_list_orders_by_name(client, booths):
+    # 전체 목록은 이름 ㄱㄴㄷ순 (등불 수와 무관)
+    response = client.get("/api/booths/", {"date": "2026-09-29", "time_slot": "NIGHT"})
+    items = response.json()["data"]["booths"]
+    names = [item["name"] for item in items]
+    assert names == [
+        "가나다 부스",
+        "건축공학과 주점",
+        "멋쟁이사자처럼 주점",
+        "명진관 화장실",
+        "총학생회 협업 부스",
+    ]
+    first = items[0]
+    assert first["has_my_lantern"] is False
+    assert first["operation"] == {"open_at": "17:30", "close_at": "22:00"}
+
+
+@pytest.mark.django_db
+def test_booth_chip_groups_collab_first_in_name_order(client, booths):
+    # '부스' 칩: 협업 부스(ㄱㄴㄷ순) → 일반 부스(ㄱㄴㄷ순). 등불 수와 무관
+    response = client.get(
+        "/api/booths/", {"date": "2026-09-29", "time_slot": "NIGHT", "category": "BOOTH"}
+    )
+    names = [item["name"] for item in response.json()["data"]["booths"]]
+    assert names == ["총학생회 협업 부스", "가나다 부스", "멋쟁이사자처럼 주점"]
+
+
+@pytest.mark.django_db
+def test_booth_list_filters_by_category(client, booths):
+    response = client.get(
+        "/api/booths/", {"date": "2026-09-29", "time_slot": "NIGHT", "category": "TOILET"}
+    )
+    items = response.json()["data"]["booths"]
+    assert [item["name"] for item in items] == ["명진관 화장실"]
+    assert items[0]["directions"] == "명진관 1층 동쪽 출입구에서 50m 직진"
+
+
+@pytest.mark.django_db
+def test_booth_list_defaults_to_first_day_outside_festival(client, booths):
+    # 실행 시점이 축제 기간 밖이면 기본 날짜가 2026-09-29로 판정되는지
+    response = client.get("/api/booths/", {"time_slot": "NIGHT"})
+    assert response.status_code == 200
+    assert response.json()["data"]["festival_date"] == "2026-09-29"
+
+
+@pytest.mark.django_db
+def test_booth_list_rejects_out_of_range_date(client, booths):
+    response = client.get("/api/booths/", {"date": "2026-10-05"})
+    assert response.status_code == 400
+    assert response.json()["code"] == "INVALID_FESTIVAL_DATE"
+
+
+@pytest.mark.django_db
+def test_booth_list_rejects_invalid_time_slot_and_category(client, booths):
+    response = client.get("/api/booths/", {"time_slot": "MORNING"})
+    assert response.status_code == 400
+    assert response.json()["errors"]["time_slot"] == "DAY 또는 NIGHT 중에서 선택해주세요."
+
+    # 삭제된 협업 칩 값(COLLAB)은 더 이상 유효하지 않다
+    response = client.get("/api/booths/", {"category": "COLLAB"})
+    assert response.status_code == 400
+    assert (
+        response.json()["errors"]["category"]
+        == "BOOTH / TOILET / ALCOHOL / ECO 중에서 선택해주세요."
+    )
