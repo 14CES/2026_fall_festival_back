@@ -68,8 +68,6 @@ class CouponIssueView(APIView):
 
 
 # 쿠폰 긁기
-
-
 class CouponScratchView(APIView):
     @transaction.atomic
     def post(self, request, coupon_id):
@@ -97,7 +95,6 @@ class CouponScratchView(APIView):
             coupon.save(
                 update_fields=[
                     "status",
-                    "updated_at",
                 ]
             )
 
@@ -119,7 +116,6 @@ class CouponScratchView(APIView):
                 update_fields=[
                     "status",
                     "scratched_at",
-                    "updated_at",
                 ]
             )
 
@@ -132,7 +128,6 @@ class CouponScratchView(APIView):
             update_fields=[
                 "status",
                 "scratched_at",
-                "updated_at",
             ]
         )
 
@@ -289,7 +284,6 @@ class CouponUseView(APIView):
                 "status",
                 "used_at",
                 "used_booth_name",
-                "updated_at",
             ]
         )
 
