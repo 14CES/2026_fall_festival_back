@@ -1,7 +1,7 @@
 """Settings shared by every environment."""
 
 from pathlib import Path
-
+from datetime import date
 import environ
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -79,3 +79,6 @@ SPECTACULAR_SETTINGS = {
 }
 
 ADMIN_API_TOKEN = env("ADMIN_API_TOKEN", default="")
+
+FESTIVAL_START_DATE = date(2026, 9, 29)
+FESTIVAL_END_DATE = date(2026, 10, 1)
