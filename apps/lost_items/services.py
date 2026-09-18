@@ -46,3 +46,14 @@ def update_lost_item(lost_item, *, title, found_date, image_urls, tags):
         for index, keyword in enumerate(tags, start=1)
     )
     return lost_item
+
+
+@transaction.atomic
+def delete_lost_item(lost_item):
+    """분실물과 그 아래 이미지·태그를 같은 시각으로 Soft Delete한다."""
+    now = timezone.now()
+    lost_item.images.alive().soft_delete(now)
+    lost_item.tags.alive().soft_delete(now)
+    lost_item.deleted_at = now
+    lost_item.save(update_fields=["deleted_at"])
+    return now

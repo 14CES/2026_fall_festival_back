@@ -16,6 +16,7 @@ from common.schema import ErrorResponseSerializer
 
 from . import selectors, services
 from .serializers import (
+    LostItemDeleteResponseSerializer,
     LostItemDetailResponseSerializer,
     LostItemIdResponseSerializer,
     LostItemListQuerySerializer,
@@ -200,4 +201,29 @@ class AdminLostItemDetailView(AdminLostItemAPIView):
             "LOST_ITEM_UPDATE_SUCCESS",
             "분실물 정보를 수정했습니다.",
             to_detail(updated_item),
+        )
+        
+    @extend_schema(
+        tags=["admin-lost-items"],
+        summary="분실물 삭제 (관리자)",
+        operation_id="admin_lost_item_delete",
+        responses={
+            200: LostItemDeleteResponseSerializer,
+            401: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
+    def delete(self, request, lost_item_id):
+        # 삭제할 분실물 조회
+        lost_item = selectors.get_lost_item(lost_item_id)
+        if lost_item is None:
+            raise NotFound(code="LOST_ITEM_NOT_FOUND", message="분실물을 찾을 수 없습니다.")
+
+        # 분실물과 이미지, 태그 Soft Delete
+        deleted_at = services.delete_lost_item(lost_item)
+
+        return success_response(
+            "LOST_ITEM_DELETE_SUCCESS",
+            "분실물을 삭제했습니다.",
+            {"lost_item_id": lost_item.pk, "deleted_at": deleted_at},
         )

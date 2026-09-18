@@ -202,3 +202,17 @@ class LostItemUpdateResponseSerializer(serializers.Serializer):
     code = serializers.CharField(default="LOST_ITEM_UPDATE_SUCCESS")
     message = serializers.CharField(default="분실물 정보를 수정했습니다.")
     data = LostItemDetailDataSerializer()
+    
+    
+class LostItemDeleteDataSerializer(serializers.Serializer):
+    lost_item_id = serializers.IntegerField()
+    deleted_at = serializers.DateTimeField()
+
+
+class LostItemDeleteResponseSerializer(serializers.Serializer):
+    """분실물 삭제 성공 응답."""
+
+    success = serializers.BooleanField(default=True)
+    code = serializers.CharField(default="LOST_ITEM_DELETE_SUCCESS")
+    message = serializers.CharField(default="분실물을 삭제했습니다.")
+    data = LostItemDeleteDataSerializer()
