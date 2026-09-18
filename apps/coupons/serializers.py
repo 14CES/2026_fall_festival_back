@@ -40,7 +40,6 @@ class CouponListItemSerializer(serializers.ModelSerializer):
             "usable_booths",
             "scratched_at",
             "used_at",
-            "created_at",
         ]
 
     def get_usable_booths(self, obj):
@@ -80,8 +79,6 @@ class CouponSerializer(serializers.ModelSerializer):
             "status",
             "scratched_at",
             "used_at",
-            "created_at",
-            "updated_at",
         ]
 
         read_only_fields = [
@@ -91,6 +88,4 @@ class CouponSerializer(serializers.ModelSerializer):
             "status",
             "scratched_at",
             "used_at",
-            "created_at",
-            "updated_at",
         ]
