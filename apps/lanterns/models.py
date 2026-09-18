@@ -1,6 +1,7 @@
 """Lanterns database models."""
+
 from django.db import models
-from django.conf import settings
+from django.utils import timezone
 
 
 class Lantern(models.Model):
@@ -9,11 +10,11 @@ class Lantern(models.Model):
         ADMIN = "ADMIN", "관리자"
 
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lanterns")
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="lanterns")
     booth = models.ForeignKey("booths.Booth", on_delete=models.CASCADE, related_name="lanterns")
     nickname = models.CharField(max_length=10, default="익명의 코끼리")
     message = models.CharField(max_length=30)
-    festival_date = models.DateField(auto_now_add=True)
+    festival_date = models.DateField(default=timezone.localdate)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True, default=None)
@@ -21,7 +22,9 @@ class Lantern(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["user", "booth", "festival_date"], name="unique_user_booth_lantern_per_day")
+            models.UniqueConstraint(
+                fields=["user", "booth", "festival_date"], name="unique_user_booth_lantern_per_day"
+            )
         ]
         indexes = [
             models.Index(fields=["user", "festival_date"], name="idx_lantern_user_date"),
@@ -41,7 +44,9 @@ class LanternReport(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     lantern = models.ForeignKey(Lantern, on_delete=models.CASCADE, related_name="lantern_reports")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lantern_reports")
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="lantern_reports"
+    )
     reason = models.CharField(max_length=20, choices=Reason.choices)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
