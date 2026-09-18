@@ -1,3 +1,12 @@
 """Booths API routes."""
 
-urlpatterns = []
+from django.urls import path
+
+from .views import BoothDetailView, BoothListView
+
+urlpatterns = [
+    # 장소 목록 조회 (지도 핀 + 카드 리스트)
+    path("", BoothListView.as_view(), name="booth-list"),
+    # 장소 상세 조회 (부스 설명 바텀시트)
+    path("<int:booth_id>/", BoothDetailView.as_view(), name="booth-detail"),
+]
