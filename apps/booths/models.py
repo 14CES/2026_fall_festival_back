@@ -35,7 +35,7 @@ class Booth(models.Model):
     thumbnail_url = models.CharField(max_length=500, null=True, blank=True)
     # 상세 '이미지' 탭용
     image_url = models.CharField(max_length=500, null=True, blank=True)
-    entrance_fee = models.IntegerField(null=True, blank=True)
+    entrance_fee = models.PositiveIntegerField(null=True, blank=True)
     event_description = models.TextField(null=True, blank=True)
     instagram_id = models.CharField(max_length=50, null=True, blank=True)
     has_reusable_container = models.BooleanField(default=True)
@@ -43,7 +43,7 @@ class Booth(models.Model):
     directions = models.TextField(null=True, blank=True)
 
     # 표시용 캐시 컬럼. 증감은 등불 도메인이 같은 트랜잭션에서 처리 (여기서는 읽기만)
-    lantern_count = models.IntegerField(default=0)
+    lantern_count = models.PositiveIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -82,8 +82,8 @@ class BoothOperation(models.Model):
 class BoothMenu(models.Model):
     booth = models.ForeignKey(Booth, on_delete=models.CASCADE, related_name="menus")
     name = models.CharField(max_length=50)
-    price = models.IntegerField()
-    sort_order = models.IntegerField()
+    price = models.PositiveIntegerField()
+    sort_order = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
