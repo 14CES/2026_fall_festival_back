@@ -4,22 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('kakao_id', models.BigIntegerField(unique=True)),
-                ('nickname', models.CharField(max_length=255)),
-                ('profile_image', models.URLField(blank=True, null=True)),
-                ('createdAt', models.DateTimeField(auto_now_add=True)),
-                ('updatedAt', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("kakao_id", models.BigIntegerField(unique=True)),
+                ("nickname", models.CharField(max_length=255)),
+                ("profile_image", models.URLField(blank=True, null=True)),
+                ("createdAt", models.DateTimeField(auto_now_add=True)),
+                ("updatedAt", models.DateTimeField(auto_now=True)),
             ],
         ),
     ]
