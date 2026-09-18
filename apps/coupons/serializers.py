@@ -17,7 +17,8 @@ class CouponIssueSerializer(serializers.ModelSerializer):
 
 # 목록조회 응답 - 사용 가능 부스 (verify_code는 절대 노출 안 함)
 class BoothVerifyCodeBriefSerializer(serializers.ModelSerializer):
-    booth_id = serializers.IntegerField(source="id")
+    booth_id = serializers.IntegerField(source="booth.id")
+    booth_name = serializers.CharField(source="booth.name")
 
     class Meta:
         model = BoothVerifyCode
