@@ -44,9 +44,6 @@ def to_detail(lost_item):
     }
 
 
-# --- 응답 스키마 (Swagger 문서 전용) -------------------------------------------
-
-
 class LostItemListItemSerializer(serializers.Serializer):
     lost_item_id = serializers.IntegerField()
     title = serializers.CharField()
@@ -98,3 +95,52 @@ class LostItemDetailResponseSerializer(serializers.Serializer):
     code = serializers.CharField(default="LOST_ITEM_DETAIL_SUCCESS")
     message = serializers.CharField(default="분실물 정보를 조회했습니다.")
     data = LostItemDetailDataSerializer()
+
+
+class UserLostItemListQuerySerializer(serializers.Serializer):
+    found_date = serializers.DateField(
+        required=False,
+        error_messages={"invalid": "날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)"}
+    )
+    keyword = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    page = serializers.IntegerField(required=False, min_value=0, default=0)
+    size = serializers.IntegerField(
+        required=False, min_value=1, max_value=MAX_PAGE_SIZE, default=DEFAULT_PAGE_SIZE
+    )
+
+
+def to_user_detail(lost_item):
+    return {
+        "lost_item_id": lost_item.pk,
+        "title": lost_item.title,
+        "found_date": lost_item.found_date,
+        "images": [
+            {
+                "image_id": image.pk,
+                "image_url": image.image_url,
+                "sort_order": image.sort_order,
+            }
+            for image in getattr(lost_item, "alive_images", lost_item.images.filter(deleted_at__isnull=True))
+        ],
+        "tags": [
+            tag.keyword
+            for tag in getattr(lost_item, "alive_tags", lost_item.tags.filter(deleted_at__isnull=True))
+        ],
+        "created_at": lost_item.created_at,
+    }
+
+
+class UserLostItemDetailDataSerializer(serializers.Serializer):
+    lost_item_id = serializers.IntegerField()
+    title = serializers.CharField()
+    found_date = serializers.DateField()
+    images = LostItemImageSerializer(many=True)
+    tags = serializers.ListField(child=serializers.CharField())
+    created_at = serializers.DateTimeField()
+
+
+class UserLostItemDetailResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    code = serializers.CharField(default="LOST_ITEM_DETAIL_SUCCESS")
+    message = serializers.CharField(default="분실물 상세 정보를 조회했습니다.")
+    data = UserLostItemDetailDataSerializer()
