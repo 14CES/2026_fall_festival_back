@@ -14,3 +14,5 @@ DATABASES = {
 }
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+ADMIN_API_TOKEN = "test-admin-token" #어드민 토큰 
