@@ -14,3 +14,7 @@ class User(models.Model):
 
     def __str__(self):
         return self.nickname
+
+    @property
+    def is_authenticated(self):
+        return True
