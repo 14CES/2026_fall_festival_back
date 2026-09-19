@@ -1,7 +1,7 @@
 """Lanterns API views."""
 
+from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
-from rest_framework.views import APIView
 
 from apps.accounts.authentication import JWTAuthentication
 from common.exceptions import InvalidInput, NotFound, Unauthorized, custom_exception_handler
@@ -12,11 +12,15 @@ from . import selectors
 from .serializers import LanternListQuerySerializer, to_lantern_item
 
 
-class LanternAPIView(APIView):
-    """등불 조회 API들이 공통으로 상속하는 베이스 뷰.
+class LanternViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    """등불 조회(목록/단건) API.
 
-    get_exception_handler()를 오버라이드해서 공통 에러 응답 형식을 이 앱에만 적용한다
-    (apps.lost_items의 LostItemAPIView와 동일한 패턴).
+    #22(등록/수정/삭제)가 GenericViewSet + DefaultRouter로 구현돼 있어서,
+    나중에 머지될 때 mixin 리스트만 합치면 되도록 같은 방식으로 맞췄다.
     """
 
     authentication_classes = [JWTAuthentication]
@@ -25,11 +29,7 @@ class LanternAPIView(APIView):
     def get_exception_handler(self):
         return custom_exception_handler
 
-
-class LanternListView(LanternAPIView):
-    """GET /api/lanterns (등불 목록 조회)"""
-
-    def get(self, request):
+    def list(self, request, *args, **kwargs):
         query = LanternListQuerySerializer(data=request.query_params)
         if not query.is_valid():
             raise InvalidInput(
@@ -59,12 +59,8 @@ class LanternListView(LanternAPIView):
             {**page.as_meta(), "items": [to_lantern_item(item) for item in page.items]},
         )
 
-
-class LanternDetailView(LanternAPIView):
-    """GET /api/lanterns/{lantern_id} (등불 단건 조회)"""
-
-    def get(self, request, lantern_id):
-        lantern = selectors.get_lantern(lantern_id)
+    def retrieve(self, request, *args, **kwargs):
+        lantern = selectors.get_lantern(self.kwargs["pk"])
         if lantern is None:
             raise NotFound(code="LANTERN_NOT_FOUND", message="존재하지 않는 등불입니다.")
 

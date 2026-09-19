@@ -1,10 +1,10 @@
 """Lanterns API routes."""
 
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-from .views import LanternDetailView, LanternListView
+from .views import LanternViewSet
 
-urlpatterns = [
-    path("", LanternListView.as_view(), name="lantern-list"),
-    path("<int:lantern_id>/", LanternDetailView.as_view(), name="lantern-detail"),
-]
+router = DefaultRouter()
+router.register("", LanternViewSet, basename="lantern")
+
+urlpatterns = router.urls
