@@ -2,7 +2,7 @@ import pytest
 
 from apps.notices.models import Notice
 
-ADMIN_NOTICES_URL = "/api/admin/notices/"
+ADMIN_NOTICES_URL = "/api/notices/"
 
 
 @pytest.mark.django_db
