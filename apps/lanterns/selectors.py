@@ -7,6 +7,26 @@ from django.db.models import Count, Q, QuerySet
 from apps.lanterns.models import Lantern, LanternReport
 
 
+# --- User Selectors ---
+def lantern_list_queryset(*, user, mine, booth_id=None, festival_date=None):
+    if mine:
+        queryset = Lantern.objects.filter(user=user)
+    else:
+        queryset = Lantern.objects.filter(deleted_at__isnull=True)
+
+    if booth_id is not None:
+        queryset = queryset.filter(booth_id=booth_id)
+    if festival_date is not None:
+        queryset = queryset.filter(festival_date=festival_date)
+
+    return queryset.order_by("-created_at")
+
+
+def get_lantern(lantern_id):
+    return Lantern.objects.filter(pk=lantern_id).first()
+
+
+# --- Admin Selectors ---
 def get_admin_lanterns_queryset(*, sort: str = "REPORT_DESC") -> QuerySet[Lantern]:
     """관리자 등불 목록을 조회하는 쿼리셋을 반환합니다.
 

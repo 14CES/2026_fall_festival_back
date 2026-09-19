@@ -5,7 +5,7 @@ from apps.accounts.models import User
 from apps.booths.models import Booth
 from apps.lanterns.models import Lantern, LanternReport
 
-ADMIN_LANTERNS_URL = "/api/lanterns/"
+ADMIN_LANTERNS_URL = "/api/admin/lanterns/"
 
 
 @pytest.mark.django_db
