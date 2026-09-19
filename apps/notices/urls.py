@@ -1,3 +1,9 @@
-"""Notices API routes."""
+"""Notices URL configuration."""
 
-urlpatterns = []
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.AdminNoticeCreateView.as_view(), name="admin-notice-create"),
+]
