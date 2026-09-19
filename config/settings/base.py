@@ -16,6 +16,7 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 KAKAO_CLIENT_ID = env("KAKAO_REST_API_KEY", default="")
 KAKAO_REDIRECT_URI = env("KAKAO_REDIRECT_URI")
+KAKAO_CLIENT_SECRET = env("KAKAO_CLIENT_SECRET", default="")
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-scaffold-only-secret-key")
 DEBUG = env.bool("DJANGO_DEBUG")
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
