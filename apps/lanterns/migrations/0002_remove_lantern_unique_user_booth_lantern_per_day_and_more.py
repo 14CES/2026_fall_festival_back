@@ -18,6 +18,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='lantern',
-            constraint=models.UniqueConstraint(condition=models.Q(('deleted_at__isnull', True)), fields=('user', 'booth', 'festival_date'), name='unique_active_user_booth_lantern_per_day'),
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("deleted_at__isnull", True)),
+                fields=("user", "booth", "festival_date"),
+                name="unique_active_user_booth_lantern_per_day",
+            ),
         ),
     ]
