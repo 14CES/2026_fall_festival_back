@@ -1,14 +1,29 @@
 """Lanterns API views."""
+
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
-from rest_framework import mixins, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import mixins, status, viewsets
+from rest_framework.permissions import BasePermission
 
 from apps.booths.models import Booth
+from common.exceptions import ApiError, NotFound, custom_exception_handler
+from common.responses import success_response
 
 from .models import Lantern
 from .serializers import LanternCreateSerializer, LanternUpdateSerializer
+
+
+class IsRegisteredUser(BasePermission):
+    """accounts.User는 AbstractBaseUser를 상속하지 않아 is_authenticated 속성이 없다.
+    그래서 DRF 기본 IsAuthenticated를 그대로 쓰면 AttributeError로 500이 난다.
+    request.user 존재 여부만으로 로그인 여부를 판단하는 임시 권한 클래스
+    (카카오 로그인 붙으면 request.user를 채워주는 인증 클래스가 필요하고,
+    이 권한 클래스도 공통 모듈로 옮기는 걸 고려해야 함).
+    """
+
+    def has_permission(self, request, view):
+        return request.user is not None
 
 
 class LanternViewSet(
@@ -17,7 +32,11 @@ class LanternViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Lantern.objects.filter(deleted_at__isnull=True)
+    permission_classes = [IsRegisteredUser]
+    queryset = Lantern.objects.all()
+
+    def get_exception_handler(self):
+        return custom_exception_handler
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -25,10 +44,58 @@ class LanternViewSet(
         return LanternUpdateSerializer
 
     def get_object(self):
-        obj = super().get_object()
+        try:
+            obj = Lantern.objects.get(pk=self.kwargs["pk"])
+        except Lantern.DoesNotExist as exc:
+            raise NotFound(code="LANTERN_NOT_FOUND", message="존재하지 않는 등불입니다.") from exc
+
         if obj.user_id != self.request.user.id:
-            raise PermissionDenied("본인이 작성한 등불만 수정·삭제할 수 있습니다.")
+            raise ApiError(
+                code="NOT_OWNER",
+                message="본인이 작성한 등불만 수정·삭제할 수 있습니다.",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        if obj.deleted_at is not None:
+            raise ApiError(
+                code="ALREADY_DELETED",
+                message="이미 삭제된 등불입니다.",
+                status_code=status.HTTP_409_CONFLICT,
+            )
+
         return obj
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(
+            code="LANTERN_CREATE_SUCCESS",
+            message="등불을 성공적으로 남겼어요!",
+            data=serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        # 당일 작성한 등불만 수정 가능 (지난 날짜 등불은 삭제만 허용 — 기획 확정)
+        if instance.festival_date != timezone.localdate():
+            raise ApiError(
+                code="NOT_TODAY_LANTERN",
+                message="지난 등불은 수정할 수 없어요.",
+                status_code=status.HTTP_409_CONFLICT,
+            )
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(
+            code="LANTERN_UPDATE_SUCCESS",
+            message="등불이 수정되었습니다.",
+            data=serializer.data,
+        )
 
     def perform_destroy(self, instance):
         with transaction.atomic():
@@ -36,3 +103,12 @@ class LanternViewSet(
             instance.deleted_by = Lantern.DeletedBy.USER
             instance.save(update_fields=["deleted_at", "deleted_by"])
             Booth.objects.filter(id=instance.booth_id).update(lantern_count=F("lantern_count") - 1)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return success_response(
+            code="LANTERN_DELETE_SUCCESS",
+            message="등불이 삭제되었습니다.",
+            data=None,
+        )
