@@ -51,4 +51,3 @@ def delete_notice(notice: Notice) -> None:
     """공지사항을 논리 삭제(Soft Delete) 처리합니다."""
     notice.deleted_at = timezone.now()
     notice.save(update_fields=["deleted_at", "updated_at"])
-
