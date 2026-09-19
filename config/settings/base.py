@@ -1,5 +1,6 @@
 """Settings shared by every environment."""
 
+from datetime import date
 from pathlib import Path
 from datetime import date
 import environ
