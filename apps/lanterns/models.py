@@ -23,7 +23,9 @@ class Lantern(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "booth", "festival_date"], name="unique_user_booth_lantern_per_day"
+                fields=["user", "booth", "festival_date"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_user_booth_lantern_per_day",
             )
         ]
         indexes = [
