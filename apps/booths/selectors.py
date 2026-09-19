@@ -1,6 +1,6 @@
 """Read-only booths queries."""
 
-from django.db.models import Case, IntegerField, Prefetch, Value, When
+from django.db.models import Case, IntegerField, Prefetch, Q, Value, When
 
 from .constants import BOOTH_CHIP, BOOTH_CHIP_CATEGORIES
 from .models import Booth, BoothMenu, BoothOperation
@@ -51,4 +51,36 @@ def booth_detail(booth_id):
             ),
         )
         .first()
+    )
+
+
+def booth_search(keyword, festival_date=None, time_slot=None):
+    # 부스명/소속/위치/소개/메뉴명 부분 일치 OR 검색. 메뉴 매칭은 중복 제거
+    match = (
+        Q(name__icontains=keyword)
+        | Q(subtitle__icontains=keyword)
+        | Q(location_detail__icontains=keyword)
+        | Q(description__icontains=keyword)
+        | Q(menus__name__icontains=keyword, menus__deleted_at__isnull=True)
+    )
+    queryset = Booth.objects.filter(match, deleted_at__isnull=True)
+
+    if festival_date:
+        operating = Q(operations__festival_date=festival_date, operations__deleted_at__isnull=True)
+        if time_slot:
+            operating &= Q(operations__time_slot=time_slot)
+        queryset = queryset.filter(operating)
+
+    # 정렬: 부스명 정확 일치 → 부스명 부분 일치 → 그 외, 같은 그룹 안에서는 이름 ㄱㄴㄷ순
+    return (
+        queryset.annotate(
+            match_rank=Case(
+                When(name__iexact=keyword, then=Value(0)),
+                When(name__icontains=keyword, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        )
+        .distinct()
+        .order_by("match_rank", "name")
     )
