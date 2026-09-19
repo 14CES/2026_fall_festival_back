@@ -276,3 +276,58 @@ class TestDefaultDate:
 
     def test_list_without_date_returns_200(self, client):
         assert client.get(LIST_URL).status_code == 200
+        
+class TestDateTimeFormat:
+    """공연 시간 응답 형식을 검증한다."""
+
+    def test_start_and_end_are_local_iso_without_timezone(
+        self,
+        client,
+    ):
+        make_performance(
+            start_hour=16,
+            end_hour=17,
+        )
+
+        body = client.get(
+            LIST_URL,
+            {"date": DAY_1.isoformat()},
+        ).json()
+
+        item = body["data"]["performances"][0]
+
+        assert item["start_at"] == "2026-09-29T16:00:00"
+        assert item["end_at"] == "2026-09-29T17:00:00"
+
+    def test_server_time_has_no_timezone_suffix_or_microseconds(
+        self,
+        client,
+    ):
+        body = client.get(
+            LIST_URL,
+            {"date": DAY_1.isoformat()},
+        ).json()
+
+        server_time = body["data"]["server_time"]
+
+        assert len(server_time) == 19
+        assert not server_time.endswith("Z")
+        assert "+" not in server_time
+        assert "." not in server_time
+
+    def test_detail_uses_same_datetime_format(
+        self,
+        client,
+    ):
+        performance = make_performance(
+            start_hour=16,
+            end_hour=17,
+        )
+
+        data = client.get(
+            f"{LIST_URL}{performance.pk}/"
+        ).json()["data"]
+
+        assert data["start_at"] == "2026-09-29T16:00:00"
+        assert data["end_at"] == "2026-09-29T17:00:00"
+        assert data["festival_date"] == "2026-09-29"
