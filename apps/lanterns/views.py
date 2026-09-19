@@ -12,17 +12,12 @@ from . import selectors
 from .serializers import LanternListQuerySerializer, to_lantern_item
 
 
+# 등불 조회 (목록/단건)
 class LanternViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    """등불 조회(목록/단건) API.
-
-    #22(등록/수정/삭제)가 GenericViewSet + DefaultRouter로 구현돼 있어서,
-    나중에 머지될 때 mixin 리스트만 합치면 되도록 같은 방식으로 맞췄다.
-    """
-
     authentication_classes = [JWTAuthentication]
     permission_classes = [AllowAny]
 

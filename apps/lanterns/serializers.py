@@ -27,12 +27,12 @@ def _lantern_status(lantern):
 
 
 def to_lantern_item(lantern):
-    """목록/상세 공통 응답 형태. 삭제된 등불은 message를 숨긴다(status로만 구분)."""
     status = _lantern_status(lantern)
     return {
         "lantern_id": lantern.id,
         "booth_id": lantern.booth_id,
         "nickname": lantern.nickname,
+        # 삭제된 등불은 message 숨김
         "message": lantern.message if status == "active" else None,
         "status": status,
         "created_at": timezone.localtime(lantern.created_at).strftime("%Y-%m-%dT%H:%M:%S"),

@@ -4,7 +4,7 @@ from .models import Lantern
 
 
 def lantern_list_queryset(*, user, mine, booth_id=None, festival_date=None):
-    """목록 조회용 쿼리셋. mine=True면 본인 것만(삭제 포함), False면 공개 목록(삭제 제외)."""
+    """mine=True면 본인 것(삭제 포함), False면 공개 목록(삭제 제외)."""
     if mine:
         queryset = Lantern.objects.filter(user=user)
     else:
@@ -19,5 +19,5 @@ def lantern_list_queryset(*, user, mine, booth_id=None, festival_date=None):
 
 
 def get_lantern(lantern_id):
-    """id로 등불 조회, 없으면 None (삭제 여부는 호출 쪽에서 판단)."""
+    """id로 조회, 없으면 None."""
     return Lantern.objects.filter(pk=lantern_id).first()
