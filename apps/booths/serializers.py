@@ -93,3 +93,37 @@ class BoothDetailSerializer(serializers.ModelSerializer):
     def get_has_my_lantern(self, obj):
         # TODO: 등불(Lantern) 모델 머지 후 로그인 사용자의 등불 보유 여부로 대체
         return False
+
+
+# 검색 결과 카드. 목록 카드와 동일 구조 (operation만 없음)
+class BoothSearchItemSerializer(serializers.ModelSerializer):
+    booth_id = serializers.IntegerField(source="id")
+    map_x = serializers.FloatField()
+    map_y = serializers.FloatField()
+    map_elevation = serializers.FloatField()
+    rotation = serializers.FloatField()
+    has_my_lantern = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booth
+        fields = [
+            "booth_id",
+            "name",
+            "subtitle",
+            "place_type",
+            "category",
+            "location_detail",
+            "directions",
+            "zone",
+            "map_x",
+            "map_y",
+            "map_elevation",
+            "rotation",
+            "thumbnail_url",
+            "lantern_count",
+            "has_my_lantern",
+        ]
+
+    def get_has_my_lantern(self, obj):
+        # TODO: 등불(Lantern) 모델 머지 후 로그인 사용자의 등불 보유 여부로 대체
+        return False
