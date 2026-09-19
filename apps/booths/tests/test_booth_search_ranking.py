@@ -107,3 +107,69 @@ def test_search_rejects_too_long_keyword(client, search_booths):
     response = client.get("/api/booths/search/", {"keyword": "가" * 51})
     assert response.status_code == 400
     assert response.json()["errors"]["keyword"] == "50자 이하로 입력해주세요."
+
+
+@pytest.fixture
+def ranking_booths(db):
+    Booth.objects.create(
+        name="가온 주점",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ETC,
+        lantern_count=32,
+    )
+    Booth.objects.create(
+        name="나래 주점",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ALCOHOL,
+        lantern_count=32,
+    )
+    Booth.objects.create(
+        name="다솜 부스",
+        place_type=Booth.PlaceType.BOOTH,
+        category=Booth.Category.ETC,
+        lantern_count=30,
+    )
+    # 시설은 랭킹·합계에서 제외되는지 검증용
+    Booth.objects.create(
+        name="명진관 화장실",
+        place_type=Booth.PlaceType.FACILITY,
+        category=Booth.Category.TOILET,
+        lantern_count=99,
+    )
+
+
+@pytest.mark.django_db
+def test_ranking_ties_share_rank(client, ranking_booths):
+    response = client.get("/api/booths/ranking/")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["code"] == "BOOTH_RANKING_SUCCESS"
+    ranking = body["data"]["ranking"]
+    assert [(item["rank"], item["name"]) for item in ranking] == [
+        (1, "가온 주점"),
+        (1, "나래 주점"),
+        (3, "다솜 부스"),
+    ]
+    # place_type=BOOTH만 합산 (시설 99개 제외)
+    assert body["data"]["total_lantern_count"] == 94
+
+
+@pytest.mark.django_db
+def test_ranking_excludes_facilities(client, ranking_booths):
+    response = client.get("/api/booths/ranking/")
+    names = [item["name"] for item in response.json()["data"]["ranking"]]
+    assert "명진관 화장실" not in names
+
+
+@pytest.mark.django_db
+def test_ranking_respects_limit(client, ranking_booths):
+    response = client.get("/api/booths/ranking/", {"limit": "2"})
+    assert len(response.json()["data"]["ranking"]) == 2
+
+
+@pytest.mark.django_db
+def test_ranking_rejects_invalid_limit(client, ranking_booths):
+    for bad in ["0", "21", "abc"]:
+        response = client.get("/api/booths/ranking/", {"limit": bad})
+        assert response.status_code == 400
+        assert response.json()["errors"]["limit"] == "1~20 사이의 정수로 입력해주세요."

@@ -1,6 +1,6 @@
 """Read-only booths queries."""
 
-from django.db.models import Case, IntegerField, Prefetch, Q, Value, When
+from django.db.models import Case, IntegerField, Prefetch, Q, Sum, Value, When
 
 from .constants import BOOTH_CHIP, BOOTH_CHIP_CATEGORIES
 from .models import Booth, BoothMenu, BoothOperation
@@ -84,3 +84,19 @@ def booth_search(keyword, festival_date=None, time_slot=None):
         .distinct()
         .order_by("match_rank", "name")
     )
+
+
+def booth_ranking(limit):
+    # 등불 달기 대상(place_type=BOOTH)만 랭킹에 포함
+    return list(
+        Booth.objects.filter(place_type=Booth.PlaceType.BOOTH, deleted_at__isnull=True).order_by(
+            "-lantern_count", "name"
+        )[:limit]
+    )
+
+
+def total_lantern_count():
+    result = Booth.objects.filter(
+        place_type=Booth.PlaceType.BOOTH, deleted_at__isnull=True
+    ).aggregate(total=Sum("lantern_count"))
+    return result["total"] or 0

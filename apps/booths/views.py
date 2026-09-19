@@ -15,7 +15,13 @@ from .constants import (
     FESTIVAL_DATES,
 )
 from .models import BoothOperation
-from .selectors import booth_detail, booth_operations_on, booth_search
+from .selectors import (
+    booth_detail,
+    booth_operations_on,
+    booth_ranking,
+    booth_search,
+    total_lantern_count,
+)
 from .serializers import (
     BoothDetailSerializer,
     BoothListItemSerializer,
@@ -161,4 +167,52 @@ class BoothSearchView(APIView):
             "BOOTH_SEARCH_SUCCESS",
             "장소를 검색했습니다.",
             {"keyword": keyword, "total_count": len(items), "booths": items},
+        )
+
+
+# 부스 등불 랭킹 (홈 화면)
+class BoothRankingView(APIView):
+    def get(self, request):
+        limit_param = request.query_params.get("limit", "5")
+        try:
+            limit = int(limit_param)
+        except ValueError:
+            return error_response(
+                "INVALID_INPUT",
+                "잘못된 요청값입니다.",
+                {"limit": "1~20 사이의 정수로 입력해주세요."},
+            )
+        if not 1 <= limit <= 20:
+            return error_response(
+                "INVALID_INPUT",
+                "잘못된 요청값입니다.",
+                {"limit": "1~20 사이의 정수로 입력해주세요."},
+            )
+
+        booths = booth_ranking(limit)
+
+        # 동점은 같은 순위 (1, 1, 3 방식)
+        ranking = []
+        previous_count = None
+        previous_rank = 0
+        for position, booth in enumerate(booths, start=1):
+            if booth.lantern_count != previous_count:
+                previous_rank = position
+                previous_count = booth.lantern_count
+
+            ranking.append(
+                {
+                    "rank": previous_rank,
+                    "booth_id": booth.id,
+                    "name": booth.name,
+                    "subtitle": booth.subtitle,
+                    "thumbnail_url": booth.thumbnail_url,
+                    "lantern_count": booth.lantern_count,
+                }
+            )
+
+        return success_response(
+            "BOOTH_RANKING_SUCCESS",
+            "부스 랭킹을 조회했습니다.",
+            {"total_lantern_count": total_lantern_count(), "ranking": ranking},
         )
