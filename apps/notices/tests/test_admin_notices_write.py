@@ -133,3 +133,21 @@ class TestAdminNoticeCreateAPI:
         assert data["success"] is False
         assert data["code"] == "INVALID_INPUT"
         assert "type" in data["errors"]
+
+    def test_create_notice_invalid_image_url_fails(self, client, auth_headers):
+        payload = {
+            "title": "잘못된 이미지 URL",
+            "content": "URL 형식 오류 테스트",
+            "image_url": "not-a-valid-url",
+        }
+        response = client.post(
+            ADMIN_NOTICES_URL,
+            data=payload,
+            content_type="application/json",
+            **auth_headers,
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert data["success"] is False
+        assert data["code"] == "INVALID_INPUT"
+        assert "image_url" in data["errors"]
