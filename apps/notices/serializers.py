@@ -32,7 +32,7 @@ class AdminNoticeListQuerySerializer(serializers.Serializer):
 
 
 class AdminNoticeCreateSerializer(serializers.Serializer):
-    """관리자 공지사항 등록 요청 바디 검증."""
+    """관리자 공지사항 신규 등록 요청 바디 검증."""
 
     type = serializers.ChoiceField(
         choices=Notice.Type.choices,
@@ -49,6 +49,37 @@ class AdminNoticeCreateSerializer(serializers.Serializer):
     content = serializers.CharField(
         allow_blank=False,
         trim_whitespace=True,
+        help_text="공지 본문",
+    )
+    image_url = serializers.URLField(
+        max_length=500,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="첨부 사진 URL",
+    )
+
+
+class AdminNoticeUpdateSerializer(serializers.Serializer):
+    """관리자 공지사항 수정 요청 바디 검증."""
+
+    type = serializers.ChoiceField(
+        choices=Notice.Type.choices,
+        required=True,
+        help_text="공지 유형 (URGENT: 긴급, NORMAL: 일반)",
+    )
+    title = serializers.CharField(
+        max_length=200,
+        allow_blank=False,
+        trim_whitespace=True,
+        required=True,
+        help_text="공지 제목",
+    )
+    content = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+        required=True,
         help_text="공지 본문",
     )
     image_url = serializers.URLField(
@@ -78,7 +109,7 @@ class AdminNoticeListItemSerializer(serializers.ModelSerializer):
 
 
 class AdminNoticeDetailSerializer(serializers.ModelSerializer):
-    """관리자 공지 상세/생성 응답 스키마."""
+    """관리자 공지 상세/생성/수정 응답 스키마."""
 
     class Meta:
         model = Notice
