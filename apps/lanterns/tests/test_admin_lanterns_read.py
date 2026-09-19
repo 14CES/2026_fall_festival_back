@@ -80,6 +80,32 @@ class TestAdminLanternListAPI:
         assert items[2]["report_count"] == 0
         assert items[2]["top_report_reason"] is None
 
+    def test_top_report_reason_tie_selects_first_reported(
+        self, client, auth_headers, test_user, test_booth
+    ):
+        # 욕설 1건(먼저 등록), 음란 1건(나중에 등록) 동률일 때 최초 신고인 욕설이 선택되어야 함
+        lantern = Lantern.objects.create(
+            user=test_user,
+            booth=test_booth,
+            message="동률 테스트 등불",
+        )
+        u1 = User.objects.create(kakao_id=5001, nickname="신고자1")
+        u2 = User.objects.create(kakao_id=5002, nickname="신고자2")
+
+        LanternReport.objects.create(
+            lantern=lantern, user=u1, reason=LanternReport.Reason.ABUSE
+        )
+        LanternReport.objects.create(
+            lantern=lantern, user=u2, reason=LanternReport.Reason.OBSCENE
+        )
+
+        response = client.get(ADMIN_LANTERNS_URL, **auth_headers)
+        assert response.status_code == 200
+        items = response.json()["data"]["items"]
+        assert len(items) == 1
+        assert items[0]["report_count"] == 2
+        assert items[0]["top_report_reason"] == "욕설 및 비방"
+
     def test_list_lanterns_latest_ordering(self, client, auth_headers, test_user, test_booth):
         user2 = User.objects.create(kakao_id=2000, nickname="유저2")
         l1 = Lantern.objects.create(user=test_user, booth=test_booth, message="메시지 1")

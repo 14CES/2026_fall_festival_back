@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Count, Min, Q, QuerySet
 
 from apps.lanterns.models import Lantern, LanternReport
 
@@ -57,8 +57,9 @@ def get_admin_lanterns_queryset(*, sort: str = "REPORT_DESC") -> QuerySet[Lanter
 def get_top_report_reasons_for_lanterns(lantern_ids: list[int]) -> dict[int, str | None]:
     """주어진 등불 ID 목록에 대해 각 등불의 최다 신고 사유(라벨)를 계산하여 반환합니다.
 
-    반환 형식: {lantern_id: "욕설 및 비방", ...}
-    신고가 없거나 조회되지 않는 등불은 None을 반환합니다.
+    - 신고 횟수가 동률일 경우, 최초 접수된 신고(가장 이른 created_at / id)의 사유를 우선 선택합니다.
+    - 반환 형식: {lantern_id: "욕설 및 비방", ...}
+    - 신고가 없거나 조회되지 않는 등불은 None을 반환합니다.
     """
     if not lantern_ids:
         return {}
@@ -66,8 +67,12 @@ def get_top_report_reasons_for_lanterns(lantern_ids: list[int]) -> dict[int, str
     reports = (
         LanternReport.objects.filter(lantern_id__in=lantern_ids, deleted_at__isnull=True)
         .values("lantern_id", "reason")
-        .annotate(count=Count("id"))
-        .order_by("lantern_id", "-count")
+        .annotate(
+            count=Count("id"),
+            first_reported_at=Min("created_at"),
+            first_report_id=Min("id"),
+        )
+        .order_by("lantern_id", "-count", "first_reported_at", "first_report_id")
     )
 
     reason_label_map = dict(LanternReport.Reason.choices)
@@ -75,7 +80,7 @@ def get_top_report_reasons_for_lanterns(lantern_ids: list[int]) -> dict[int, str
 
     for item in reports:
         lantern_id = item["lantern_id"]
-        # order_by('lantern_id', '-count') 기준 첫 번째 항목이 최다 신고 사유
+        # 정렬 기준 첫 번째 항목이 최다(동률 시 최초) 신고 사유
         if lantern_id not in top_reasons:
             raw_reason = item["reason"]
             top_reasons[lantern_id] = reason_label_map.get(raw_reason, raw_reason)
