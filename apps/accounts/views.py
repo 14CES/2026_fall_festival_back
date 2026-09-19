@@ -44,7 +44,7 @@ class KakaoLoginView(APIView):
         }
 
         try:
-            token_response = requests.post(kakao_token_url, data=token_params)
+            token_response = requests.post(kakao_token_url, data=token_params, timeout=5)
 
             token_response.raise_for_status()
 
@@ -82,7 +82,7 @@ class KakaoLoginView(APIView):
         }
 
         try:
-            user_response = requests.get(kakao_user_url, headers=headers)
+            user_response = requests.get(kakao_user_url, headers=headers, timeout=5)
 
             user_response.raise_for_status()
 
