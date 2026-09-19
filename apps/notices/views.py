@@ -5,7 +5,7 @@ from rest_framework import status as http_status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.views import APIView
 
-from common.exceptions import InvalidInput, NotFound, custom_exception_handler
+from common.exceptions import InvalidImageFile, InvalidInput, NotFound, custom_exception_handler
 from common.pagination import paginate
 from common.permissions import IsAdmin
 from common.responses import success_response
@@ -176,9 +176,8 @@ class AdminNoticeImageUploadView(AdminNoticeAPIView):
     def post(self, request):
         serializer = AdminNoticeImageUploadSerializer(data=request.data)
         if not serializer.is_valid():
-            raise InvalidInput(
-                "입력값이 올바르지 않습니다.",
-                errors=serializer.errors,
+            raise InvalidImageFile(
+                errors={"image": "JPG, PNG, WebP 형식의 이미지 파일만 업로드할 수 있습니다."}
             )
 
         image_file = serializer.validated_data["image"]

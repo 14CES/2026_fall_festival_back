@@ -16,6 +16,7 @@ from common.exceptions import FileSizeExceeded, InvalidImageFile
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 @transaction.atomic
@@ -85,7 +86,14 @@ def upload_notice_image(image: UploadedFile, *, request=None) -> str:
             errors={"image": "JPG, PNG, WebP 형식의 이미지 파일만 업로드할 수 있습니다."}
         )
 
-    # 3. 이미지 무결성 및 실제 포맷 검증 (Pillow)
+    # 3. MIME 타입 검증
+    content_type = getattr(image, "content_type", None)
+    if content_type and content_type.lower() not in ALLOWED_CONTENT_TYPES:
+        raise InvalidImageFile(
+            errors={"image": "JPG, PNG, WebP 형식의 이미지 파일만 업로드할 수 있습니다."}
+        )
+
+    # 4. 이미지 무결성 및 실제 포맷 검증 (Pillow)
     try:
         image.seek(0)
         img = Image.open(image)

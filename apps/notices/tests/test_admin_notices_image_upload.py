@@ -67,7 +67,20 @@ class TestAdminNoticeImageUploadAPI:
         assert response.status_code == 400
         data = response.json()
         assert data["success"] is False
-        assert data["code"] == "INVALID_INPUT"
+        assert data["code"] == "INVALID_IMAGE_FILE"
+        assert "image" in data["errors"]
+
+    def test_upload_image_invalid_content_type_fails(self, client, auth_headers):
+        img_io = _create_test_image("JPEG")
+        upload_file = SimpleUploadedFile(
+            "photo.jpg", img_io.getvalue(), content_type="application/octet-stream"
+        )
+
+        response = client.post(IMAGE_UPLOAD_URL, data={"image": upload_file}, **auth_headers)
+        assert response.status_code == 400
+        data = response.json()
+        assert data["success"] is False
+        assert data["code"] == "INVALID_IMAGE_FILE"
         assert "image" in data["errors"]
 
     def test_upload_image_invalid_extension_fails(self, client, auth_headers):
