@@ -39,10 +39,11 @@ class KakaoLoginView(APIView):
         token_params = {
             "grant_type": "authorization_code",
             "client_id": settings.KAKAO_CLIENT_ID,
-            "client_secret": settings.KAKAO_CLIENT_SECRET,
             "redirect_uri": settings.KAKAO_REDIRECT_URI,
             "code": code,
         }
+        if settings.KAKAO_CLIENT_SECRET:
+            token_params["client_secret"] = settings.KAKAO_CLIENT_SECRET
 
         try:
             token_response = requests.post(kakao_token_url, data=token_params, timeout=5)
@@ -50,12 +51,17 @@ class KakaoLoginView(APIView):
             token_response.raise_for_status()
 
         except requests.exceptions.RequestException as error:
+            try:
+                error_detail = token_response.json()
+            except Exception:
+                error_detail = str(error)
+
             return Response(
                 {
                     "success": False,
                     "code": "502",
                     "message": "카카오 서버 연결 실패",
-                    "errors": {"kakao_api": str(error)},
+                    "errors": {"kakao_api": error_detail},
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
