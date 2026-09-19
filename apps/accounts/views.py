@@ -39,6 +39,7 @@ class KakaoLoginView(APIView):
         token_params = {
             "grant_type": "authorization_code",
             "client_id": settings.KAKAO_CLIENT_ID,
+            "client_secret": settings.KAKAO_CLIENT_SECRET,
             "redirect_uri": settings.KAKAO_REDIRECT_URI,
             "code": code,
         }
@@ -153,7 +154,7 @@ class KakaoLoginView(APIView):
 
             now = datetime.now()
 
-            expired_date = now + timedelta(hours=24)
+            expired_date = now + timedelta(days=4)
 
             payload = {"user_id": user_id, "iat": now.timestamp(), "exp": expired_date.timestamp()}
 
