@@ -12,7 +12,6 @@ from . import selectors
 from .serializers import LanternListQuerySerializer, to_lantern_item
 
 
-# 등불 조회 (목록/단건)
 class LanternViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -61,7 +60,6 @@ class LanternViewSet(
 
         is_owner = request.user is not None and lantern.user_id == request.user.id
         if lantern.deleted_at is not None and not is_owner:
-            # 본인 것이 아니고 삭제된 상태면 존재하지 않는 것처럼 처리
             raise NotFound(code="LANTERN_NOT_FOUND", message="존재하지 않는 등불입니다.")
 
         return success_response(

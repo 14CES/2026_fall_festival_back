@@ -32,7 +32,6 @@ def to_lantern_item(lantern):
         "lantern_id": lantern.id,
         "booth_id": lantern.booth_id,
         "nickname": lantern.nickname,
-        # 삭제된 등불은 message 숨김
         "message": lantern.message if status == "active" else None,
         "status": status,
         "created_at": timezone.localtime(lantern.created_at).strftime("%Y-%m-%dT%H:%M:%S"),
