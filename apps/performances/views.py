@@ -1,7 +1,4 @@
-"""공연 API.
-
-타임테이블, 상세, 지금 공연 중 조회를 제공합니다. 전부 인증 없는 공개 API입니다.
-"""
+"""공연 조회 API."""
 
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -20,16 +17,12 @@ from .serializers import (
     PerformanceNowResponseSerializer,
     to_detail,
     to_list_item,
+    to_local_iso,
 )
 
 
 class PerformanceAPIView(APIView):
-    """공연 API가 공통으로 상속하는 베이스 뷰.
-
-    get_exception_handler()를 오버라이드해서 공통 에러 응답 형식을 이 앱에만
-    적용한다. REST_FRAMEWORK 설정에 전역 등록하지 않는 이유는 다른 앱의 에러
-    응답 형식까지 같이 바뀌기 때문이다.
-    """
+    """공연 API 공통 설정."""
 
     permission_classes = [AllowAny]
 
@@ -38,7 +31,7 @@ class PerformanceAPIView(APIView):
 
 
 class PerformanceListView(PerformanceAPIView):
-    """GET /api/performances/"""
+    """공연 타임테이블 조회 API."""
 
     @extend_schema(
         tags=["performances"],
@@ -52,15 +45,24 @@ class PerformanceListView(PerformanceAPIView):
     )
     def get(self, request):
         query = PerformanceListQuerySerializer(data=request.query_params)
+
         if not query.is_valid():
             raise InvalidInput(
                 code="INVALID_FESTIVAL_DATE",
                 message="축제 기간 내의 날짜가 아닙니다.",
-                errors={key: str(value[0]) for key, value in query.errors.items()},
+                errors={
+                    key: str(value[0])
+                    for key, value in query.errors.items()
+                },
             )
 
         now = timezone.localtime()
-        festival_date = services.resolve_festival_date(query.validated_data.get("date"), now.date())
+
+        festival_date = services.resolve_festival_date(
+            query.validated_data.get("date"),
+            now.date(),
+        )
+
         performances = selectors.list_performances_on(festival_date)
 
         return success_response(
@@ -68,11 +70,12 @@ class PerformanceListView(PerformanceAPIView):
             "공연 목록을 조회했습니다.",
             {
                 "festival_date": festival_date,
-                # 기기 시계 오차로 프론트 타임라인이 어긋나는 걸 막기 위해
-                # 서버 시각을 같이 내려준다.
-                "server_time": now,
+                "server_time": to_local_iso(now),
                 "performances": [
-                    to_list_item(item, is_live=services.is_live(item, now))
+                    to_list_item(
+                        item,
+                        is_live=services.is_live(item, now),
+                    )
                     for item in performances
                 ],
             },
@@ -80,13 +83,15 @@ class PerformanceListView(PerformanceAPIView):
 
 
 class PerformanceNowView(PerformanceAPIView):
-    """GET /api/performances/now/ (홈 화면 '지금 공연 중' 카드)"""
+    """지금 공연 중 조회 API."""
 
     @extend_schema(
         tags=["performances"],
         summary="지금 공연 중 조회",
         operation_id="performance_now",
-        responses={200: PerformanceNowResponseSerializer},
+        responses={
+            200: PerformanceNowResponseSerializer,
+        },
     )
     def get(self, request):
         now = timezone.localtime()
@@ -96,9 +101,12 @@ class PerformanceNowView(PerformanceAPIView):
             "PERFORMANCE_NOW_SUCCESS",
             "현재 공연 정보를 조회했습니다.",
             {
-                "server_time": now,
+                "server_time": to_local_iso(now),
                 "performances": [
-                    to_list_item(item, is_live=services.is_live(item, now))
+                    to_list_item(
+                        item,
+                        is_live=services.is_live(item, now),
+                    )
                     for item in performances
                 ],
             },
@@ -106,7 +114,7 @@ class PerformanceNowView(PerformanceAPIView):
 
 
 class PerformanceDetailView(PerformanceAPIView):
-    """GET /api/performances/{performance_id}/"""
+    """공연 상세 조회 API."""
 
     @extend_schema(
         tags=["performances"],
@@ -119,8 +127,12 @@ class PerformanceDetailView(PerformanceAPIView):
     )
     def get(self, request, performance_id):
         performance = selectors.get_performance(performance_id)
+
         if performance is None:
-            raise NotFound(code="PERFORMANCE_NOT_FOUND", message="공연을 찾을 수 없습니다.")
+            raise NotFound(
+                code="PERFORMANCE_NOT_FOUND",
+                message="공연을 찾을 수 없습니다.",
+            )
 
         return success_response(
             "PERFORMANCE_DETAIL_SUCCESS",

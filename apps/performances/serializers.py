@@ -1,11 +1,13 @@
-"""공연 API 요청/응답 데이터 처리.
-
-- 조회 조건 검증
-- 응답 데이터 변환 및 Swagger 스키마 정의
-"""
+"""공연 API 요청 및 응답 데이터 처리."""
 
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import serializers
+
+
+def to_local_iso(value):
+    """날짜·시간을 한국 시각의 API 응답 형식으로 변환한다."""
+    return timezone.localtime(value).strftime("%Y-%m-%dT%H:%M:%S")
 
 
 class PerformanceListQuerySerializer(serializers.Serializer):
@@ -14,28 +16,32 @@ class PerformanceListQuerySerializer(serializers.Serializer):
     date = serializers.DateField(required=False)
 
     def validate_date(self, value):
-        # 축제 기간(9/29~10/1) 밖의 날짜면 막는다.
-        start, end = settings.FESTIVAL_START_DATE, settings.FESTIVAL_END_DATE
+        start = settings.FESTIVAL_START_DATE
+        end = settings.FESTIVAL_END_DATE
+
         if not (start <= value <= end):
-            raise serializers.ValidationError(f"{start} ~ {end} 중에서 선택해주세요.")
+            raise serializers.ValidationError(
+                f"{start} ~ {end} 중에서 선택해주세요."
+            )
+
         return value
 
 
 def to_list_item(performance, *, is_live):
-    """타임테이블 카드 한 장으로 변환한다."""
+    """공연 목록 아이템으로 변환한다."""
     return {
         "performance_id": performance.pk,
         "team_name": performance.team_name,
         "affiliation": performance.affiliation,
         "image_url": performance.image_url,
-        "start_at": performance.start_at,
-        "end_at": performance.end_at,
+        "start_at": to_local_iso(performance.start_at),
+        "end_at": to_local_iso(performance.end_at),
         "is_live": is_live,
     }
 
 
 def to_detail(performance):
-    """상세 화면용으로 변환한다. 셋리스트는 sort_order 순서 그대로."""
+    """공연 상세 응답으로 변환한다."""
     return {
         "performance_id": performance.pk,
         "team_name": performance.team_name,
@@ -43,8 +49,8 @@ def to_detail(performance):
         "description": performance.description,
         "image_url": performance.image_url,
         "festival_date": performance.festival_date,
-        "start_at": performance.start_at,
-        "end_at": performance.end_at,
+        "start_at": to_local_iso(performance.start_at),
+        "end_at": to_local_iso(performance.end_at),
         "songs": [
             {
                 "song_id": song.pk,
@@ -57,22 +63,25 @@ def to_detail(performance):
     }
 
 
-# --- 응답 스키마 (Swagger 문서 전용) -------------------------------------------
-
-
 class PerformanceListItemSerializer(serializers.Serializer):
     performance_id = serializers.IntegerField()
     team_name = serializers.CharField()
     affiliation = serializers.CharField(allow_null=True)
     image_url = serializers.URLField(allow_null=True)
-    start_at = serializers.DateTimeField()
-    end_at = serializers.DateTimeField()
+    start_at = serializers.CharField(
+        help_text="2026-09-29T16:00:00 (KST)"
+    )
+    end_at = serializers.CharField(
+        help_text="2026-09-29T17:00:00 (KST)"
+    )
     is_live = serializers.BooleanField()
 
 
 class PerformanceListDataSerializer(serializers.Serializer):
     festival_date = serializers.DateField()
-    server_time = serializers.DateTimeField()
+    server_time = serializers.CharField(
+        help_text="2026-09-29T16:30:00 (KST)"
+    )
     performances = PerformanceListItemSerializer(many=True)
 
 
@@ -99,8 +108,12 @@ class PerformanceDetailDataSerializer(serializers.Serializer):
     description = serializers.CharField(allow_null=True)
     image_url = serializers.URLField(allow_null=True)
     festival_date = serializers.DateField()
-    start_at = serializers.DateTimeField()
-    end_at = serializers.DateTimeField()
+    start_at = serializers.CharField(
+        help_text="2026-09-29T16:00:00 (KST)"
+    )
+    end_at = serializers.CharField(
+        help_text="2026-09-29T17:00:00 (KST)"
+    )
     songs = SongSerializer(many=True)
 
 
@@ -114,7 +127,9 @@ class PerformanceDetailResponseSerializer(serializers.Serializer):
 
 
 class PerformanceNowDataSerializer(serializers.Serializer):
-    server_time = serializers.DateTimeField()
+    server_time = serializers.CharField(
+        help_text="2026-09-29T15:20:00 (KST)"
+    )
     performances = PerformanceListItemSerializer(many=True)
 
 
