@@ -6,6 +6,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.booths.models import Booth, BoothMenu, BoothOperation
+from apps.lanterns.models import Lantern
 
 DATE_1 = date(2026, 9, 29)
 
@@ -180,3 +181,14 @@ def test_search_rejects_time_slot_without_date(client, search_booths):
     response = client.get("/api/booths/search/", {"keyword": "멋사", "time_slot": "NIGHT"})
     assert response.status_code == 400
     assert response.json()["errors"]["time_slot"] == "time_slot은 date와 함께 사용해야 합니다."
+
+
+@pytest.mark.django_db
+def test_search_marks_my_lantern(auth_client, me, search_booths):
+    Lantern.objects.create(
+        user=me, booth=search_booths["partial"], message="화이팅", festival_date=DATE_1
+    )
+    response = auth_client.get("/api/booths/search/", {"keyword": "멋사"})
+    flags = {item["name"]: item["has_my_lantern"] for item in response.json()["data"]["booths"]}
+    assert flags["멋사 주점"] is True
+    assert flags["멋사"] is False
