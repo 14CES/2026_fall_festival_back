@@ -2,6 +2,7 @@
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status as http_status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.views import APIView
 
 from common.exceptions import InvalidInput, NotFound, custom_exception_handler
@@ -13,6 +14,8 @@ from . import selectors, services
 from .serializers import (
     AdminNoticeCreateSerializer,
     AdminNoticeDetailSerializer,
+    AdminNoticeImageUploadResponseSerializer,
+    AdminNoticeImageUploadSerializer,
     AdminNoticeListQuerySerializer,
     AdminNoticeUpdateSerializer,
     to_admin_notice_detail,
@@ -155,4 +158,35 @@ class AdminNoticeDetailView(AdminNoticeAPIView):
             "ADMIN_NOTICE_DELETE_SUCCESS",
             "공지사항이 성공적으로 삭제되었습니다.",
             {},
+        )
+
+
+class AdminNoticeImageUploadView(AdminNoticeAPIView):
+    """관리자 공지 이미지 업로드 API (POST /api/notices/images/)."""
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        tags=["admin-notices"],
+        summary="관리자 공지 이미지 업로드",
+        operation_id="admin_notice_image_upload",
+        request=AdminNoticeImageUploadSerializer,
+        responses={201: AdminNoticeImageUploadResponseSerializer},
+    )
+    def post(self, request):
+        serializer = AdminNoticeImageUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise InvalidInput(
+                "입력값이 올바르지 않습니다.",
+                errors=serializer.errors,
+            )
+
+        image_file = serializer.validated_data["image"]
+        image_url = services.upload_notice_image(image_file, request=request)
+
+        return success_response(
+            "IMAGE_UPLOAD_SUCCESS",
+            "이미지가 성공적으로 업로드되었습니다.",
+            {"image_url": image_url},
+            status=http_status.HTTP_201_CREATED,
         )
