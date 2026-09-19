@@ -36,9 +36,7 @@ class LanternCreateSerializer(ForbiddenWordValidationMixin, serializers.ModelSer
 
     def validate(self, attrs):
         today = timezone.localdate()
-        # create()에서 같은 값을 재사용한다. Lantern.festival_date의 모델 기본값에 맡기면
-        # validate()가 계산한 today와 실제 저장되는 festival_date가 어긋날 수 있어서
-        # (모델 default는 값을 임포트 시점에 캡처하므로 이 self._today를 통해 명시적으로 넘긴다)
+
         self._today = today
 
         if not (settings.FESTIVAL_START_DATE <= today <= settings.FESTIVAL_END_DATE):
@@ -55,8 +53,6 @@ class LanternCreateSerializer(ForbiddenWordValidationMixin, serializers.ModelSer
 
         user = self.context["request"].user
 
-        # 삭제된 등불은 재등록을 막지 않는다
-        # (같은 날 같은 부스라도 삭제 후 재등록 허용 — PM 확인된 정책)
         active_duplicate = Lantern.objects.filter(
             user=user, booth_id=booth_id, festival_date=today, deleted_at__isnull=True
         ).exists()

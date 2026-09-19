@@ -70,7 +70,6 @@ class LanternViewSet(
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
 
-        # 당일 작성한 등불만 수정 가능 (지난 날짜 등불은 삭제만 허용 — 기획 확정)
         if instance.festival_date != timezone.localdate():
             raise ApiError(
                 code="NOT_TODAY_LANTERN",

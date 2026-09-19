@@ -127,7 +127,6 @@ class TestLanternCreate:
         assert response.json()["code"] == "DUPLICATE_BOOTH_LANTERN"
 
     def test_create_allows_reregistration_after_delete(self, auth_client, user, booth):
-        # 팀 정책: 같은 날 같은 부스라도 삭제 후에는 재등록 허용
         deleted = Lantern.objects.create(
             user=user, booth=booth, message="먼저", festival_date=FESTIVAL_DAY
         )
@@ -177,7 +176,6 @@ class TestLanternCreate:
         assert response.status_code in (401, 403)
 
     def test_create_with_real_jwt_token(self, client, user, booth):
-        # force_authenticate 우회 없이 실제 JWTAuthentication 경로로 인증되는지 확인
         import jwt
         from django.conf import settings
 
@@ -271,8 +269,6 @@ class TestLanternDelete:
         assert response.status_code == 200
         body = response.json()
         assert body["code"] == "LANTERN_DELETE_SUCCESS"
-        # 참고: 명세서는 data: null 이지만 common.responses.success_response는
-        # data=None을 {}로 바꾼다 (공통 인프라 동작, lanterns만의 문제 아님) — 팀 확인 필요
         assert body["data"] == {}
 
         lantern.refresh_from_db()
@@ -283,7 +279,6 @@ class TestLanternDelete:
         assert booth.lantern_count == 0
 
     def test_delete_allows_past_date_lantern(self, auth_client, user, booth):
-        # 지난 날짜 등불도 삭제는 허용 (수정만 막힘 — 10-4)
         booth.lantern_count = 1
         booth.save(update_fields=["lantern_count"])
         lantern = Lantern.objects.create(
