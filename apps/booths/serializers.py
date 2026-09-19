@@ -25,8 +25,8 @@ class BoothListItemSerializer(serializers.Serializer):
     operation = serializers.SerializerMethodField()
 
     def get_has_my_lantern(self, obj):
-        # TODO: 등불(Lantern) 모델 머지 후 로그인 사용자의 등불 보유 여부로 대체
-        return False
+        # selectors에서 annotate된 값. 비로그인 요청은 annotate가 없으므로 False
+        return getattr(obj, "has_my_lantern", False)
 
     def get_operation(self, obj):
         return {
@@ -91,8 +91,8 @@ class BoothDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_has_my_lantern(self, obj):
-        # TODO: 등불(Lantern) 모델 머지 후 로그인 사용자의 등불 보유 여부로 대체
-        return False
+        # selectors에서 annotate된 값. 비로그인 요청은 annotate가 없으므로 False
+        return getattr(obj, "has_my_lantern", False)
 
 
 # 검색 결과 카드. 목록 카드와 동일 구조 (operation만 없음)
@@ -125,5 +125,5 @@ class BoothSearchItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_has_my_lantern(self, obj):
-        # TODO: 등불(Lantern) 모델 머지 후 로그인 사용자의 등불 보유 여부로 대체
-        return False
+        # selectors에서 annotate된 값. 비로그인 요청은 annotate가 없으므로 False
+        return getattr(obj, "has_my_lantern", False)

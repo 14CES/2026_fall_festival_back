@@ -3,9 +3,11 @@
 from datetime import date, time
 
 import pytest
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.booths.models import Booth, BoothMenu, BoothOperation
+from apps.lanterns.models import Lantern
 
 DATE_1 = date(2026, 9, 29)
 
@@ -170,3 +172,30 @@ def test_booth_detail_returns_404_for_missing_booth(client, booths):
     response = client.get("/api/booths/999999/")
     assert response.status_code == 404
     assert response.json()["code"] == "BOOTH_NOT_FOUND"
+
+
+@pytest.mark.django_db
+def test_booth_list_marks_booths_with_my_lantern(auth_client, me, booths):
+    Lantern.objects.create(user=me, booth=booths["popular"], message="화이팅", festival_date=DATE_1)
+    # 삭제한 등불은 표시하지 않는다
+    Lantern.objects.create(
+        user=me,
+        booth=booths["normal"],
+        message="지운 등불",
+        festival_date=DATE_1,
+        deleted_at=timezone.now(),
+        deleted_by=Lantern.DeletedBy.USER,
+    )
+    response = auth_client.get("/api/booths/", {"date": "2026-09-29", "time_slot": "NIGHT"})
+    flags = {item["name"]: item["has_my_lantern"] for item in response.json()["data"]["booths"]}
+    assert flags["멋쟁이사자처럼 주점"] is True
+    assert flags["가나다 부스"] is False
+    assert flags["건축공학과 주점"] is False
+
+
+@pytest.mark.django_db
+def test_booth_detail_marks_my_lantern(auth_client, me, booths):
+    booth = booths["popular"]
+    Lantern.objects.create(user=me, booth=booth, message="화이팅", festival_date=DATE_1)
+    response = auth_client.get(f"/api/booths/{booth.id}/")
+    assert response.json()["data"]["has_my_lantern"] is True
