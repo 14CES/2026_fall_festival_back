@@ -2,7 +2,7 @@
 
 from datetime import date
 from pathlib import Path
-from datetime import date
+
 import environ
 
 BASE_DIR = Path(__file__).resolve().parents[2]

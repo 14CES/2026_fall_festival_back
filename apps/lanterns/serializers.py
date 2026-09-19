@@ -14,13 +14,19 @@ from .validators import contains_forbidden_word
 
 
 class ForbiddenWordValidationMixin:
-    def validate_message(self, value):
+    def _check_forbidden_word(self, value):
         if contains_forbidden_word(value):
             raise InvalidInput(
                 code="FORBIDDEN_WORD_DETECTED",
                 message="부적절한 단어가 포함되어 있습니다.",
             )
         return value
+
+    def validate_message(self, value):
+        return self._check_forbidden_word(value)
+
+    def validate_nickname(self, value):
+        return self._check_forbidden_word(value)
 
 
 class LanternCreateSerializer(ForbiddenWordValidationMixin, serializers.ModelSerializer):

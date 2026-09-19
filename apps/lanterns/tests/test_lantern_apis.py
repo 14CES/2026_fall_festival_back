@@ -175,6 +175,18 @@ class TestLanternCreate:
         response = client.post("/api/lanterns/", {"booth_id": booth.id, "message": "화이팅!"})
         assert response.status_code in (401, 403)
 
+    def test_create_rejects_forbidden_nickname(self, auth_client, booth):
+        with (
+            _patch_today(),
+            patch("apps.lanterns.serializers.contains_forbidden_word", return_value=True),
+        ):
+            response = auth_client.post(
+                "/api/lanterns/",
+                {"booth_id": booth.id, "nickname": "나쁜말", "message": "화이팅!"},
+            )
+        assert response.status_code == 400
+        assert response.json()["code"] == "FORBIDDEN_WORD_DETECTED"
+
     def test_create_with_real_jwt_token(self, client, user, booth):
         import jwt
         from django.conf import settings
@@ -252,6 +264,18 @@ class TestLanternUpdate:
             patch("apps.lanterns.serializers.contains_forbidden_word", return_value=True),
         ):
             response = auth_client.patch(f"/api/lanterns/{lantern.id}/", {"message": "나쁜말"})
+        assert response.status_code == 400
+        assert response.json()["code"] == "FORBIDDEN_WORD_DETECTED"
+
+    def test_update_rejects_forbidden_nickname(self, auth_client, user, booth):
+        lantern = Lantern.objects.create(
+            user=user, booth=booth, message="원래 메시지", festival_date=FESTIVAL_DAY
+        )
+        with (
+            _patch_today_views(),
+            patch("apps.lanterns.serializers.contains_forbidden_word", return_value=True),
+        ):
+            response = auth_client.patch(f"/api/lanterns/{lantern.id}/", {"nickname": "나쁜말"})
         assert response.status_code == 400
         assert response.json()["code"] == "FORBIDDEN_WORD_DETECTED"
 
