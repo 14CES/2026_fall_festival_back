@@ -173,3 +173,10 @@ def test_ranking_rejects_invalid_limit(client, ranking_booths):
         response = client.get("/api/booths/ranking/", {"limit": bad})
         assert response.status_code == 400
         assert response.json()["errors"]["limit"] == "1~20 사이의 정수로 입력해주세요."
+
+
+@pytest.mark.django_db
+def test_search_rejects_time_slot_without_date(client, search_booths):
+    response = client.get("/api/booths/search/", {"keyword": "멋사", "time_slot": "NIGHT"})
+    assert response.status_code == 400
+    assert response.json()["errors"]["time_slot"] == "time_slot은 date와 함께 사용해야 합니다."

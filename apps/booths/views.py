@@ -151,14 +151,21 @@ class BoothSearchView(APIView):
                     {"date": "2026-09-29 ~ 2026-10-01 중에서 선택해주세요."},
                 )
 
-        # time_slot은 date와 함께 쓸 때만 적용
+        # time_slot은 date와 함께 쓸 때만 사용 가능
         time_slot = request.query_params.get("time_slot")
-        if time_slot and time_slot not in BoothOperation.TimeSlot.values:
-            return error_response(
-                "INVALID_INPUT",
-                "잘못된 요청값입니다.",
-                {"time_slot": "DAY 또는 NIGHT 중에서 선택해주세요."},
-            )
+        if time_slot:
+            if time_slot not in BoothOperation.TimeSlot.values:
+                return error_response(
+                    "INVALID_INPUT",
+                    "잘못된 요청값입니다.",
+                    {"time_slot": "DAY 또는 NIGHT 중에서 선택해주세요."},
+                )
+            if festival_date is None:
+                return error_response(
+                    "INVALID_INPUT",
+                    "잘못된 요청값입니다.",
+                    {"time_slot": "time_slot은 date와 함께 사용해야 합니다."},
+                )
 
         booths = booth_search(keyword, festival_date, time_slot)
         items = BoothSearchItemSerializer(booths, many=True).data
