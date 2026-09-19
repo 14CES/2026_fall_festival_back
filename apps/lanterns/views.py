@@ -4,8 +4,9 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import IsAuthenticated
 
+from apps.accounts.authentication import JWTAuthentication
 from apps.booths.models import Booth
 from common.exceptions import ApiError, NotFound, custom_exception_handler
 from common.responses import success_response
@@ -14,25 +15,14 @@ from .models import Lantern
 from .serializers import LanternCreateSerializer, LanternUpdateSerializer
 
 
-class IsRegisteredUser(BasePermission):
-    """accounts.User는 AbstractBaseUser를 상속하지 않아 is_authenticated 속성이 없다.
-    그래서 DRF 기본 IsAuthenticated를 그대로 쓰면 AttributeError로 500이 난다.
-    request.user 존재 여부만으로 로그인 여부를 판단하는 임시 권한 클래스
-    (카카오 로그인 붙으면 request.user를 채워주는 인증 클래스가 필요하고,
-    이 권한 클래스도 공통 모듈로 옮기는 걸 고려해야 함).
-    """
-
-    def has_permission(self, request, view):
-        return request.user is not None
-
-
 class LanternViewSet(
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [IsRegisteredUser]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Lantern.objects.all()
 
     def get_exception_handler(self):

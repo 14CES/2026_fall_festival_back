@@ -176,6 +176,21 @@ class TestLanternCreate:
         response = client.post("/api/lanterns/", {"booth_id": booth.id, "message": "화이팅!"})
         assert response.status_code in (401, 403)
 
+    def test_create_with_real_jwt_token(self, client, user, booth):
+        # force_authenticate 우회 없이 실제 JWTAuthentication 경로로 인증되는지 확인
+        import jwt
+        from django.conf import settings
+
+        token = jwt.encode({"user_id": user.id}, settings.SECRET_KEY, algorithm="HS256")
+        with _patch_today():
+            response = client.post(
+                "/api/lanterns/",
+                {"booth_id": booth.id, "message": "화이팅!"},
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+        assert response.status_code == 201
+        assert response.json()["code"] == "LANTERN_CREATE_SUCCESS"
+
 
 @pytest.mark.django_db
 class TestLanternUpdate:
