@@ -37,7 +37,7 @@ def list_live(now):
     """현재 진행 중인 공연을 조회한다."""
     return list(
         Performance.objects.alive()
-        .filter(start_at__lte=now, end_at__gte=now)
+        .filter(start_at__lte=now, end_at__gt=now)
         .order_by("start_at", "performance_id")
     )
 
