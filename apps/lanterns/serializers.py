@@ -86,9 +86,7 @@ class LanternCreateSerializer(ForbiddenWordValidationMixin, serializers.ModelSer
         booth_id = validated_data["booth_id"]
 
         with transaction.atomic():
-            lantern = Lantern.objects.create(
-                user=user, festival_date=self._today, **validated_data
-            )
+            lantern = Lantern.objects.create(user=user, festival_date=self._today, **validated_data)
             Booth.objects.filter(id=booth_id).update(lantern_count=F("lantern_count") + 1)
 
         return lantern
@@ -210,3 +208,14 @@ def to_admin_lantern_detail(lantern: Lantern, top_reason: str | None = None) -> 
         "top_report_reason": top_reason,
         "created_at": lantern.created_at,
     }
+
+
+class AdminLanternDeleteResponseSerializer(serializers.Serializer):
+    """관리자 등불 삭제(블라인드) 응답 스키마."""
+
+    success = serializers.BooleanField(default=True, help_text="성공 여부")
+    code = serializers.CharField(default="ADMIN_LANTERN_DELETE_SUCCESS", help_text="응답 코드")
+    message = serializers.CharField(
+        default="등불이 성공적으로 삭제되었습니다.", help_text="응답 메시지"
+    )
+    data = serializers.DictField(default=dict, help_text="응답 데이터 (빈 객체)")

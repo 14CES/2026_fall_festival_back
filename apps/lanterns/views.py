@@ -21,9 +21,10 @@ from common.pagination import paginate
 from common.permissions import IsAdmin
 from common.responses import success_response
 
-from . import selectors
+from . import selectors, services
 from .models import Lantern
 from .serializers import (
+    AdminLanternDeleteResponseSerializer,
     AdminLanternDetailSerializer,
     AdminLanternListQuerySerializer,
     LanternCreateSerializer,
@@ -245,4 +246,23 @@ class AdminLanternDetailView(AdminLanternAPIView):
             "ADMIN_LANTERN_DETAIL_SUCCESS",
             "관리자 등불 신고 상세 조회에 성공했습니다.",
             to_admin_lantern_detail(lantern, top_reason),
+        )
+
+    @extend_schema(
+        tags=["admin-lanterns"],
+        summary="관리자 등불 삭제 (블라인드 처리)",
+        operation_id="admin_lantern_delete",
+        responses={200: AdminLanternDeleteResponseSerializer},
+    )
+    def delete(self, request, lantern_id: int):
+        lantern = selectors.get_admin_lantern_by_id(lantern_id=lantern_id)
+        if lantern is None:
+            raise NotFound("해당 등불을 찾을 수 없습니다.")
+
+        services.delete_admin_lantern(lantern)
+
+        return success_response(
+            "ADMIN_LANTERN_DELETE_SUCCESS",
+            "등불이 성공적으로 삭제되었습니다.",
+            {},
         )
