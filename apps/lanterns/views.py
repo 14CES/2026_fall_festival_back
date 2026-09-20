@@ -86,7 +86,12 @@ class LanternViewSet(
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            raise InvalidInput(
+                code="INVALID_REQUEST_PARAM",
+                message="요청 파라미터가 올바르지 않습니다.",
+                errors={key: str(value[0]) for key, value in serializer.errors.items()},
+            )
         serializer.save()
         return success_response(
             code="LANTERN_CREATE_SUCCESS",
@@ -107,7 +112,12 @@ class LanternViewSet(
             )
 
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            raise InvalidInput(
+                code="INVALID_REQUEST_PARAM",
+                message="요청 파라미터가 올바르지 않습니다.",
+                errors={key: str(value[0]) for key, value in serializer.errors.items()},
+            )
         serializer.save()
         return success_response(
             code="LANTERN_UPDATE_SUCCESS",
