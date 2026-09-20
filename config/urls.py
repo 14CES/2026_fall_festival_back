@@ -15,6 +15,8 @@ urlpatterns = [
     path("api/notices/", include("apps.notices.urls")),
     path("api/booths/", include("apps.booths.urls")),
     path("api/lanterns/", include("apps.lanterns.urls")),
+    path("api/performances/", include("apps.performances.urls")),
+    path("api/admin/lanterns/", include("apps.lanterns.admin_urls")),
 ]
 
 # 개발 환경에서 업로드된 미디어 파일 제공
