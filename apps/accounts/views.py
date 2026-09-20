@@ -1,7 +1,7 @@
 """Accounts API views."""
 
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import jwt
 import requests
@@ -40,7 +40,7 @@ def issue_refresh_token(user):
 # jwt_token 생성
 def generate_jwt_token(user_id):
 
-    now = datetime.now()
+    now = timezone.now()
 
     expired_date = now + timedelta(hours=24)
 
@@ -260,8 +260,12 @@ class TokenRefreshView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        if refresh_token.expires_at < timezone.now():
-            refresh_token.delete()
+        user = refresh_token.user
+        is_expired = refresh_token.expires_at < timezone.now()
+
+        deleted_count, _ = RefreshToken.objects.filter(id=refresh_token.id).delete()
+
+        if is_expired or deleted_count == 0:
             return Response(
                 {
                     "success": False,
@@ -271,9 +275,6 @@ class TokenRefreshView(APIView):
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-
-        user = refresh_token.user
-        refresh_token.delete()  # 기존 것 폐기
 
         new_access_token = generate_jwt_token(user.id)
         new_refresh_token = issue_refresh_token(user)
