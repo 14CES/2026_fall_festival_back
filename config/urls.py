@@ -14,7 +14,6 @@ urlpatterns = [
     path("api/lost-items/", include("apps.lost_items.public_urls")),
     path("api/admin/lost-items/", include("apps.lost_items.urls")),
     path("api/notices/", include("apps.notices.urls")),
-    path("api/admin/notices/", include("apps.notices.urls")),
     path("api/booths/", include("apps.booths.urls")),
     path("api/lanterns/", include("apps.lanterns.urls")),
 ]

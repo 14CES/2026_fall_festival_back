@@ -14,6 +14,7 @@ from .serializers import (
     AdminNoticeCreateSerializer,
     AdminNoticeDetailSerializer,
     AdminNoticeListQuerySerializer,
+    AdminNoticeUpdateSerializer,
     to_admin_notice_detail,
     to_admin_notice_list_item,
 )
@@ -88,7 +89,7 @@ class AdminNoticeListView(AdminNoticeAPIView):
 
 
 class AdminNoticeDetailView(AdminNoticeAPIView):
-    """관리자 공지사항 상세 조회 API (GET /api/notices/<int:notice_id>/)."""
+    """관리자 공지사항 상세 조회 (GET), 수정 (PUT), 삭제 (DELETE) API."""
 
     @extend_schema(
         tags=["admin-notices"],
@@ -105,4 +106,53 @@ class AdminNoticeDetailView(AdminNoticeAPIView):
             "ADMIN_NOTICE_DETAIL_SUCCESS",
             "공지 상세 조회에 성공했습니다.",
             to_admin_notice_detail(notice),
+        )
+
+    @extend_schema(
+        tags=["admin-notices"],
+        summary="관리자 공지 수정",
+        operation_id="admin_notice_update",
+        request=AdminNoticeUpdateSerializer,
+        responses={200: AdminNoticeDetailSerializer},
+    )
+    def put(self, request, notice_id: int):
+        notice = selectors.get_notice_by_id(notice_id=notice_id)
+        if notice is None:
+            raise NotFound("해당 공지사항을 찾을 수 없습니다.")
+
+        serializer = AdminNoticeUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise InvalidInput("입력값이 올바르지 않습니다.", errors=serializer.errors)
+
+        updated_notice = services.update_notice(
+            notice,
+            title=serializer.validated_data["title"],
+            content=serializer.validated_data["content"],
+            type=serializer.validated_data["type"],
+            image_url=serializer.validated_data.get("image_url"),
+        )
+
+        return success_response(
+            "ADMIN_NOTICE_UPDATE_SUCCESS",
+            "공지사항이 성공적으로 수정되었습니다.",
+            to_admin_notice_detail(updated_notice),
+        )
+
+    @extend_schema(
+        tags=["admin-notices"],
+        summary="관리자 공지 삭제 (Soft Delete)",
+        operation_id="admin_notice_delete",
+        responses={200: None},
+    )
+    def delete(self, request, notice_id: int):
+        notice = selectors.get_notice_by_id(notice_id=notice_id)
+        if notice is None:
+            raise NotFound("해당 공지사항을 찾을 수 없습니다.")
+
+        services.delete_notice(notice)
+
+        return success_response(
+            "ADMIN_NOTICE_DELETE_SUCCESS",
+            "공지사항이 성공적으로 삭제되었습니다.",
+            {},
         )
