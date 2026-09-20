@@ -20,7 +20,16 @@ from .serializers import (
     AdminNoticeUpdateSerializer,
     to_admin_notice_detail,
     to_admin_notice_list_item,
+
+    NoticeDetailSerializer,
+    NoticeListItemSerializer,
+    NoticeListQuerySerializer,
+    to_user_notice_detail,
+    to_user_notice_list_item,
 )
+
+from rest_framework.permissions import AllowAny
+
 
 
 class AdminNoticeAPIView(APIView):
@@ -189,20 +198,6 @@ class AdminNoticeImageUploadView(AdminNoticeAPIView):
             {"image_url": image_url},
             status=http_status.HTTP_201_CREATED,
         )
-
-# views.py 상단 import에 AllowAny 추가 필요:
-# from rest_framework.permissions import AllowAny
-
-# views.py 하단에 추가:
-from rest_framework.permissions import AllowAny
-
-from .serializers import (
-    NoticeDetailSerializer,
-    NoticeListItemSerializer,
-    NoticeListQuerySerializer,
-    to_user_notice_detail,
-    to_user_notice_list_item,
-)
 
 
 class UserNoticeAPIView(APIView):
