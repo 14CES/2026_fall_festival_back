@@ -47,6 +47,9 @@ class LanternCreateSerializer(ForbiddenWordValidationMixin, serializers.ModelSer
 
         self._today = today
 
+        if not attrs.get("nickname"):
+            attrs["nickname"] = "익명의 코끼리"
+
         if not (settings.FESTIVAL_START_DATE <= today <= settings.FESTIVAL_END_DATE):
             raise InvalidInput(
                 code="NOT_FESTIVAL_PERIOD", message="등불은 축제 당일에만 달 수 있어요."
