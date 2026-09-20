@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import RefreshToken, User
+from apps.accounts.views import _hash_token
 
 LOGOUT_URL = "/api/accounts/logout/"
 REFRESH_URL = "/api/accounts/token/refresh/"
@@ -25,14 +26,18 @@ def user(db):
 @pytest.fixture
 def refresh_token(user):
     return RefreshToken.objects.create(
-        user=user, token="logout-target-token", expires_at=timezone.now() + timedelta(days=7)
+        user=user,
+        token=_hash_token("logout-target-token"),
+        expires_at=timezone.now() + timedelta(days=7),
     )
 
 
 @pytest.fixture
 def other_device_token(user):
     return RefreshToken.objects.create(
-        user=user, token="other-device-token", expires_at=timezone.now() + timedelta(days=7)
+        user=user,
+        token=_hash_token("other-device-token"),
+        expires_at=timezone.now() + timedelta(days=7),
     )
 
 
@@ -40,13 +45,13 @@ def other_device_token(user):
 class TestLogout:
     def test_logout_deletes_target_token_only(self, client, refresh_token, other_device_token):
         response = client.post(
-            LOGOUT_URL, data={"refresh_token": refresh_token.token}, format="json"
+            LOGOUT_URL, data={"refresh_token": "logout-target-token"}, format="json"
         )
 
         assert response.status_code == 200
         assert response.json()["code"] == "LOGOUT_SUCCESS"
-        assert not RefreshToken.objects.filter(token=refresh_token.token).exists()
-        assert RefreshToken.objects.filter(token=other_device_token.token).exists()
+        assert not RefreshToken.objects.filter(token=_hash_token("logout-target-token")).exists()
+        assert RefreshToken.objects.filter(token=_hash_token("other-device-token")).exists()
 
     def test_logout_with_nonexistent_token_is_idempotent(self, client):
         response = client.post(LOGOUT_URL, data={"refresh_token": "garbage-token"}, format="json")
@@ -57,9 +62,9 @@ class TestLogout:
         assert response.status_code == 400
 
     def test_logged_out_token_cannot_be_refreshed(self, client, refresh_token):
-        client.post(LOGOUT_URL, data={"refresh_token": refresh_token.token}, format="json")
+        client.post(LOGOUT_URL, data={"refresh_token": "logout-target-token"}, format="json")
 
         response = client.post(
-            REFRESH_URL, data={"refresh_token": refresh_token.token}, format="json"
+            REFRESH_URL, data={"refresh_token": "logout-target-token"}, format="json"
         )
         assert response.status_code == 401

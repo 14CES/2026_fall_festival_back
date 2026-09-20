@@ -1,5 +1,6 @@
 """Accounts API views."""
 
+import hashlib
 import secrets
 from datetime import timedelta
 
@@ -15,22 +16,31 @@ from .models import RefreshToken, User
 from .serializers import LoginSerializer, RefreshTokenSerializer, UserSerializer
 
 
+# 해싱 헬퍼 함수
+def _hash_token(token):
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 # refresh_token 발급
 def issue_refresh_token(user):
     RefreshToken.objects.filter(user=user, expires_at__lt=timezone.now()).delete()
 
     MAX_TOKENS_PER_USER = 5
-    existing = RefreshToken.objects.filter(user=user).order_by("created_at")
-    if existing.count() >= MAX_TOKENS_PER_USER:
-        overflow_count = existing.count() - MAX_TOKENS_PER_USER + 1
-        oldest_ids = list(existing.values_list("id", flat=True)[:overflow_count])
+    existing_count = RefreshToken.objects.filter(user=user).count()
+    if existing_count >= MAX_TOKENS_PER_USER:
+        overflow_count = existing_count - MAX_TOKENS_PER_USER + 1
+        oldest_ids = list(
+            RefreshToken.objects.filter(user=user)
+            .order_by("created_at")
+            .values_list("id", flat=True)[:overflow_count]
+        )
         RefreshToken.objects.filter(id__in=oldest_ids).delete()
 
     token = secrets.token_urlsafe(32)
 
     RefreshToken.objects.create(
         user=user,
-        token=token,
+        token=_hash_token(token),
         expires_at=timezone.now() + timedelta(days=7),
     )
 
@@ -172,19 +182,10 @@ class KakaoLoginView(APIView):
 
         # DB에 사용자 저장 및 조회
         try:
-            user = User.objects.get(kakao_id=kakao_id)
-            user.nickname = nickname
-            user.profile_image = profile_image
-            user.save()
-
-            is_new_user = False
-
-        except User.DoesNotExist:
-            user = User.objects.create(
-                kakao_id=kakao_id, nickname=nickname, profile_image=profile_image
+            user, is_new_user = User.objects.update_or_create(
+                kakao_id=kakao_id,
+                defaults={"nickname": nickname, "profile_image": profile_image},
             )
-
-            is_new_user = True
 
         except Exception as error:
             return Response(
@@ -248,7 +249,7 @@ class TokenRefreshView(APIView):
         token_value = serializer.validated_data["refresh_token"]
 
         try:
-            refresh_token = RefreshToken.objects.get(token=token_value)
+            refresh_token = RefreshToken.objects.get(token=_hash_token(token_value))
         except RefreshToken.DoesNotExist:
             return Response(
                 {
@@ -310,7 +311,7 @@ class LogoutView(APIView):
             )
 
         token_value = serializer.validated_data["refresh_token"]
-        RefreshToken.objects.filter(token=token_value).delete()
+        RefreshToken.objects.filter(token=_hash_token(token_value)).delete()
 
         return Response(
             {
