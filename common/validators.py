@@ -6,7 +6,6 @@ from PIL import Image, UnidentifiedImageError
 
 from .exceptions import FileTooLarge, UnsupportedFileType
 
-
 # 실제 이미지 포맷별 허용 확장자
 IMAGE_FORMAT_EXTENSIONS = {
     "JPEG": {"jpg", "jpeg"},

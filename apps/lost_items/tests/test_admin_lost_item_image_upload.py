@@ -9,7 +9,6 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
-
 pytestmark = pytest.mark.django_db
 
 UPLOAD_URL = "/api/admin/lost-items/images/"

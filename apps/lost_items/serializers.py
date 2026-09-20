@@ -227,8 +227,8 @@ class UserLostItemDetailResponseSerializer(serializers.Serializer):
     code = serializers.CharField(default="LOST_ITEM_DETAIL_SUCCESS")
     message = serializers.CharField(default="분실물 상세 정보를 조회했습니다.")
     data = UserLostItemDetailDataSerializer()
-    
-    
+
+
 class LostItemImageUploadRequestSerializer(serializers.Serializer):
     """분실물 이미지 업로드 요청."""
 

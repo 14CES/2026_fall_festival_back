@@ -11,7 +11,6 @@ from common.validators import validate_image_upload
 
 from .models import LostItem, LostItemImage, LostItemTag
 
-
 # 업로드 이미지 저장 경로
 IMAGE_UPLOAD_DIR = "lost-items"
 
@@ -67,6 +66,7 @@ def delete_lost_item(lost_item):
     lost_item.deleted_at = now
     lost_item.save(update_fields=["deleted_at"])
     return now
+
 
 def store_image(uploaded_file):
     """이미지를 검증하고 저장한 뒤 URL을 반환한다."""

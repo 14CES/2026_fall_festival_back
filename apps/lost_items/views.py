@@ -224,10 +224,7 @@ class AdminLostItemImageUploadView(AdminLostItemAPIView):
 
         if not serializer.is_valid():
             raise InvalidInput(
-                errors={
-                    key: str(value[0])
-                    for key, value in serializer.errors.items()
-                }
+                errors={key: str(value[0]) for key, value in serializer.errors.items()}
             )
 
         # 파일 검증 및 저장
@@ -242,6 +239,7 @@ class AdminLostItemImageUploadView(AdminLostItemAPIView):
             {"image_url": image_url},
             status=http_status.HTTP_201_CREATED,
         )
+
 
 class LostItemAPIView(APIView):
     """사용자용 View의 기본 클래스"""

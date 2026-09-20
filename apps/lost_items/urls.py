@@ -8,7 +8,6 @@ from .views import (
     AdminLostItemListView,
 )
 
-
 app_name = "admin_lost_items"
 
 urlpatterns = [

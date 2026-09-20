@@ -117,7 +117,8 @@ def custom_exception_handler(exc, context):
         errors,
         status=response.status_code,
     )
-    
+
+
 class FileTooLarge(ApiError):
     """파일 크기 제한 초과."""
 

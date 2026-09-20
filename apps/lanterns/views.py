@@ -8,7 +8,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from apps.accounts.authentication import JWTAuthentication
 from apps.booths.models import Booth
-from common.exceptions import ApiError, InvalidInput, NotFound, Unauthorized, custom_exception_handler
+from common.exceptions import (
+    ApiError,
+    InvalidInput,
+    NotFound,
+    Unauthorized,
+    custom_exception_handler,
+)
 from common.pagination import paginate
 from common.responses import success_response
 
