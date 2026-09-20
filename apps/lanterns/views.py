@@ -135,6 +135,17 @@ class LanternViewSet(
             instance.save(update_fields=["deleted_at", "deleted_by"])
             Booth.objects.filter(id=instance.booth_id).update(lantern_count=F("lantern_count") - 1)
 
+    @extend_schema(
+        tags=["admin-lanterns", "lanterns"],
+        summary="등불 삭제 (사용자 본인 삭제 및 관리자 블라인드 처리)",
+        description=(
+            "관리자 권한(Bearer ADMIN_API_TOKEN) 요청 시 부적절한 등불을 "
+            "블라인드(Soft Delete) 처리하고 연관 부스의 등불 수를 1 차감합니다. "
+            "일반 사용자 토큰 요청 시 본인이 작성한 등불을 삭제합니다."
+        ),
+        operation_id="lantern_delete",
+        responses={200: AdminLanternDeleteResponseSerializer},
+    )
     def destroy(self, request, *args, **kwargs):
         if is_admin_request(request):
             lantern = selectors.get_admin_lantern_by_id(lantern_id=kwargs.get("pk"))
