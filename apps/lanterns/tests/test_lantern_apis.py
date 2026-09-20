@@ -175,6 +175,15 @@ class TestLanternCreate:
         response = client.post("/api/lanterns/", {"booth_id": booth.id, "message": "화이팅!"})
         assert response.status_code in (401, 403)
 
+    def test_create_rejects_invalid_field_value(self, auth_client, booth):
+        with _patch_today():
+            response = auth_client.post(
+                "/api/lanterns/",
+                {"booth_id": booth.id, "message": "x" * 31},
+            )
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_REQUEST_PARAM"
+
     def test_create_rejects_forbidden_nickname(self, auth_client, booth):
         with (
             _patch_today(),
@@ -266,6 +275,15 @@ class TestLanternUpdate:
             response = auth_client.patch(f"/api/lanterns/{lantern.id}/", {"message": "나쁜말"})
         assert response.status_code == 400
         assert response.json()["code"] == "FORBIDDEN_WORD_DETECTED"
+
+    def test_update_rejects_invalid_field_value(self, auth_client, user, booth):
+        lantern = Lantern.objects.create(
+            user=user, booth=booth, message="원래 메시지", festival_date=FESTIVAL_DAY
+        )
+        with _patch_today_views():
+            response = auth_client.patch(f"/api/lanterns/{lantern.id}/", {"message": "x" * 31})
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_REQUEST_PARAM"
 
     def test_update_rejects_forbidden_nickname(self, auth_client, user, booth):
         lantern = Lantern.objects.create(
