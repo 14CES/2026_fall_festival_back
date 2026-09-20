@@ -30,3 +30,7 @@ def get_admin_notices_queryset(notice_type: str = "ALL") -> QuerySet[Notice]:
 def get_notice_by_id(notice_id: int) -> Notice | None:
     """ID로 삭제되지 않은 공지사항 단건을 조회합니다."""
     return Notice.objects.alive().filter(pk=notice_id).first()
+
+def get_user_notices_queryset(notice_type: str = "ALL") -> QuerySet[Notice]:
+    """일반 사용자용 공지사항 목록 쿼리셋을 반환합니다."""
+    return get_admin_notices_queryset(notice_type=notice_type)
