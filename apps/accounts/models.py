@@ -19,6 +19,7 @@ class User(models.Model):
     def is_authenticated(self):
         return True
 
+
 class RefreshToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="refresh_tokens")
     token = models.CharField(max_length=255, unique=True)
