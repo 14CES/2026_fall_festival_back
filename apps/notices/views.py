@@ -20,7 +20,16 @@ from .serializers import (
     AdminNoticeUpdateSerializer,
     to_admin_notice_detail,
     to_admin_notice_list_item,
+
+    NoticeDetailSerializer,
+    NoticeListItemSerializer,
+    NoticeListQuerySerializer,
+    to_user_notice_detail,
+    to_user_notice_list_item,
 )
+
+from rest_framework.permissions import AllowAny
+
 
 
 class AdminNoticeAPIView(APIView):
@@ -188,4 +197,67 @@ class AdminNoticeImageUploadView(AdminNoticeAPIView):
             "이미지가 성공적으로 업로드되었습니다.",
             {"image_url": image_url},
             status=http_status.HTTP_201_CREATED,
+        )
+
+
+class UserNoticeAPIView(APIView):
+    """일반 사용자 공지사항 기본 API 뷰 (인증 불필요)."""
+
+    permission_classes = [AllowAny]
+
+    def get_exception_handler(self):
+        return custom_exception_handler
+
+
+class NoticeListView(UserNoticeAPIView):
+    """일반 사용자 공지사항 목록 조회 API."""
+
+    @extend_schema(
+        tags=["notices"],
+        summary="공지사항 목록 조회",
+        operation_id="user_notice_list",
+        parameters=[NoticeListQuerySerializer],
+        responses={200: NoticeListItemSerializer(many=True)},
+    )
+    def get(self, request):
+        query_serializer = NoticeListQuerySerializer(data=request.query_params)
+        if not query_serializer.is_valid():
+            raise InvalidInput("입력값이 올바르지 않습니다.", errors=query_serializer.errors)
+
+        notice_type = query_serializer.validated_data["type"]
+        page = query_serializer.validated_data["page"]
+        size = query_serializer.validated_data["size"]
+
+        queryset = selectors.get_user_notices_queryset(notice_type=notice_type)
+        page_data = paginate(queryset, page=page, size=size)
+
+        items = [to_user_notice_list_item(notice) for notice in page_data.items]
+        return success_response(
+            "NOTICE_LIST_SUCCESS",
+            "공지 목록 조회에 성공했습니다.",
+            {
+                "items": items,
+                "meta": page_data.as_meta(),
+            },
+        )
+
+
+class NoticeDetailView(UserNoticeAPIView):
+    """일반 사용자 공지사항 상세 조회 API."""
+
+    @extend_schema(
+        tags=["notices"],
+        summary="공지사항 상세 조회",
+        operation_id="user_notice_detail",
+        responses={200: NoticeDetailSerializer},
+    )
+    def get(self, request, notice_id: int):
+        notice = selectors.get_notice_by_id(notice_id=notice_id)
+        if notice is None:
+            raise NotFound("해당 공지사항을 찾을 수 없습니다.")
+
+        return success_response(
+            "NOTICE_DETAIL_SUCCESS",
+            "공지 상세 조회에 성공했습니다.",
+            to_user_notice_detail(notice),
         )
