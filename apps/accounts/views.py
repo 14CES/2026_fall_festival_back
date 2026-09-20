@@ -1,15 +1,16 @@
 """Accounts API views."""
 
+import jwt, requests, secrets
+
 from datetime import datetime, timedelta
 
-import jwt
-import requests
+from django.utils import timezone
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import User
+from .models import RefreshToken, User
 from .serializers import LoginSerializer, UserSerializer
 
 
@@ -155,12 +156,33 @@ class KakaoLoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # refresh_token 발급
+        def issue_refresh_token(user):
+            RefreshToken.objects.filter(user=user, expires_at__lt=timezone.now()).delete()
+
+            MAX_TOKENS_PER_USER = 5
+            existing = RefreshToken.objects.filter(user=user).order_by("created_at")
+            if existing.count() >= MAX_TOKENS_PER_USER:
+                overflow_count = existing.count() - MAX_TOKENS_PER_USER + 1
+                oldest_ids = list(existing.values_list("id", flat=True)[:overflow_count])
+                RefreshToken.objects.filter(id__in=oldest_ids).delete()
+
+            token = secrets.token_urlsafe(32)
+
+            RefreshToken.objects.create(
+                user=user,
+                token=token,
+                expires_at=timezone.now() + timedelta(days=7),
+            )
+
+            return token
+
         # jwt_token 생성
         def generate_jwt_token(user_id):
 
             now = datetime.now()
 
-            expired_date = now + timedelta(days=4)
+            expired_date = now + timedelta(hours=24)
 
             payload = {"user_id": user_id, "iat": now.timestamp(), "exp": expired_date.timestamp()}
 
@@ -174,6 +196,7 @@ class KakaoLoginView(APIView):
 
         try:
             access_token = generate_jwt_token(user.id)
+            refresh_token = issue_refresh_token(user)
 
         except Exception as error:
             return Response(
@@ -194,6 +217,7 @@ class KakaoLoginView(APIView):
                 "message": "카카오톡 1초 로그인 성공",
                 "data": {
                     "access_token": access_token,
+                    "refresh_token": refresh_token,
                     "is_new_user": is_new_user,
                     "user": UserSerializer(user).data,
                 },
