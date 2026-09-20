@@ -1,11 +1,12 @@
 """Accounts API views."""
 
-import jwt, requests, secrets
-
+import secrets
 from datetime import datetime, timedelta
 
-from django.utils import timezone
+import jwt
+import requests
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
