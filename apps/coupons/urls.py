@@ -5,7 +5,7 @@ from .views import (
     CouponListView,
     CouponScratchView,
     CouponUseView,
-    CouponStatsView
+    CouponStatsView,
 )
 
 urlpatterns = [

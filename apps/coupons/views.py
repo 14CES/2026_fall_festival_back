@@ -299,6 +299,7 @@ class CouponUseView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
 # 날짜별 쿠폰 발급/당첨 현황 조회
 class CouponStatsView(APIView):
     def get(self, request):
