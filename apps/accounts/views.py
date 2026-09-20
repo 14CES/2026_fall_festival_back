@@ -1,10 +1,5 @@
 """Accounts API views."""
 
-import hashlib
-import secrets
-from datetime import timedelta
-
-import jwt
 import requests
 from django.conf import settings
 from django.utils import timezone
@@ -14,55 +9,7 @@ from rest_framework.views import APIView
 
 from .models import RefreshToken, User
 from .serializers import LoginSerializer, RefreshTokenSerializer, UserSerializer
-
-
-# 해싱 헬퍼 함수
-def _hash_token(token):
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
-# refresh_token 발급
-def issue_refresh_token(user):
-    RefreshToken.objects.filter(user=user, expires_at__lt=timezone.now()).delete()
-
-    MAX_TOKENS_PER_USER = 5
-    existing_count = RefreshToken.objects.filter(user=user).count()
-    if existing_count >= MAX_TOKENS_PER_USER:
-        overflow_count = existing_count - MAX_TOKENS_PER_USER + 1
-        oldest_ids = list(
-            RefreshToken.objects.filter(user=user)
-            .order_by("created_at")
-            .values_list("id", flat=True)[:overflow_count]
-        )
-        RefreshToken.objects.filter(id__in=oldest_ids).delete()
-
-    token = secrets.token_urlsafe(32)
-
-    RefreshToken.objects.create(
-        user=user,
-        token=_hash_token(token),
-        expires_at=timezone.now() + timedelta(days=7),
-    )
-
-    return token
-
-
-# jwt_token 생성
-def generate_jwt_token(user_id):
-
-    now = timezone.now()
-
-    expired_date = now + timedelta(hours=24)
-
-    payload = {"user_id": user_id, "iat": now.timestamp(), "exp": expired_date.timestamp()}
-
-    token = jwt.encode(
-        payload,
-        settings.SECRET_KEY,
-        algorithm="HS256",  # 대칭키 암호화
-    )
-
-    return token
+from .services import _hash_token, generate_jwt_token, issue_refresh_token
 
 
 class KakaoLoginView(APIView):
