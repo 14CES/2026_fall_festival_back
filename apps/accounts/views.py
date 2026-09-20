@@ -291,3 +291,32 @@ class TokenRefreshView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class LogoutView(APIView):
+    """로그아웃 함수 (refresh_token 무효화)"""
+
+    def post(self, request):
+        serializer = RefreshTokenSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "code": "400",
+                    "message": "입력값이 올바르지 않습니다.",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_value = serializer.validated_data["refresh_token"]
+        RefreshToken.objects.filter(token=token_value).delete()
+
+        return Response(
+            {
+                "success": True,
+                "code": "LOGOUT_SUCCESS",
+                "message": "로그아웃 되었습니다",
+            },
+            status=status.HTTP_200_OK,
+        )
