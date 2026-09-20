@@ -17,6 +17,12 @@ MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+EXTENSION_TO_FORMAT = {
+    "jpg": "JPEG",
+    "jpeg": "JPEG",
+    "png": "PNG",
+    "webp": "WEBP",
+}
 
 
 @transaction.atomic
@@ -98,12 +104,14 @@ def upload_notice_image(image: UploadedFile, *, request=None) -> str:
         image.seek(0)
         img = Image.open(image)
         img.verify()
-        if (img.format or "").upper() not in ALLOWED_IMAGE_FORMATS:
+        actual_format = (img.format or "").upper()
+        expected_format = EXTENSION_TO_FORMAT.get(ext)
+        if actual_format not in ALLOWED_IMAGE_FORMATS or actual_format != expected_format:
             raise InvalidImageFile(
                 errors={"image": "JPG, PNG, WebP 형식의 이미지 파일만 업로드할 수 있습니다."}
             )
         image.seek(0)
-    except (UnidentifiedImageError, Exception) as exc:
+    except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
         raise InvalidImageFile(
             errors={"image": "JPG, PNG, WebP 형식의 이미지 파일만 업로드할 수 있습니다."}
         ) from exc

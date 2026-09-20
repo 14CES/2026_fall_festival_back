@@ -106,12 +106,24 @@ class TestAdminNoticeImageUploadAPI:
         assert data["success"] is False
         assert data["code"] == "INVALID_IMAGE_FILE"
 
+    def test_upload_image_extension_format_mismatch_fails(self, client, auth_headers):
+        # PNG 바이트 내용을 가진 파일을 jpg 확장자로 전송할 때 실패 검증
+        png_io = _create_test_image("PNG")
+        upload_file = SimpleUploadedFile(
+            "mismatch.jpg", png_io.getvalue(), content_type="image/jpeg"
+        )
+
+        response = client.post(IMAGE_UPLOAD_URL, data={"image": upload_file}, **auth_headers)
+        assert response.status_code == 400
+        data = response.json()
+        assert data["success"] is False
+        assert data["code"] == "INVALID_IMAGE_FILE"
+        assert "image" in data["errors"]
+
     def test_upload_image_file_size_exceeded_fails(self, client, auth_headers):
         # 10MB + 100 bytes
         large_size = 10 * 1024 * 1024 + 100
-        large_file = SimpleUploadedFile(
-            "huge.jpg", b"0" * large_size, content_type="image/jpeg"
-        )
+        large_file = SimpleUploadedFile("huge.jpg", b"0" * large_size, content_type="image/jpeg")
 
         response = client.post(IMAGE_UPLOAD_URL, data={"image": large_file}, **auth_headers)
         assert response.status_code == 413

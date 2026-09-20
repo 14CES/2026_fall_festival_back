@@ -151,7 +151,18 @@ class AdminNoticeImageUploadSerializer(serializers.Serializer):
     )
 
 
+class AdminNoticeImageUploadDataSerializer(serializers.Serializer):
+    """관리자 공지 이미지 업로드 데이터 스키마."""
+
+    image_url = serializers.URLField(help_text="업로드된 이미지의 접근 URL")
+
+
 class AdminNoticeImageUploadResponseSerializer(serializers.Serializer):
     """관리자 공지 이미지 업로드 응답 스키마."""
 
-    image_url = serializers.URLField(help_text="업로드된 이미지의 접근 URL")
+    success = serializers.BooleanField(default=True, help_text="성공 여부")
+    code = serializers.CharField(default="IMAGE_UPLOAD_SUCCESS", help_text="응답 코드")
+    message = serializers.CharField(
+        default="이미지가 성공적으로 업로드되었습니다.", help_text="응답 메시지"
+    )
+    data = AdminNoticeImageUploadDataSerializer(help_text="응답 데이터")
