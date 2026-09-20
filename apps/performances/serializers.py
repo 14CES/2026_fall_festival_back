@@ -20,9 +20,7 @@ class PerformanceListQuerySerializer(serializers.Serializer):
         end = settings.FESTIVAL_END_DATE
 
         if not (start <= value <= end):
-            raise serializers.ValidationError(
-                f"{start} ~ {end} 중에서 선택해주세요."
-            )
+            raise serializers.ValidationError(f"{start} ~ {end} 중에서 선택해주세요.")
 
         return value
 
@@ -66,22 +64,16 @@ def to_detail(performance):
 class PerformanceListItemSerializer(serializers.Serializer):
     performance_id = serializers.IntegerField()
     team_name = serializers.CharField()
-    affiliation = serializers.CharField(allow_null=True)
-    image_url = serializers.URLField(allow_null=True)
-    start_at = serializers.CharField(
-        help_text="2026-09-29T16:00:00 (KST)"
-    )
-    end_at = serializers.CharField(
-        help_text="2026-09-29T17:00:00 (KST)"
-    )
+    affiliation = serializers.CharField(allow_null=True, allow_blank=True)
+    image_url = serializers.URLField(allow_null=True, allow_blank=True)
+    start_at = serializers.CharField(help_text="2026-09-29T16:00:00 (KST)")
+    end_at = serializers.CharField(help_text="2026-09-29T17:00:00 (KST)")
     is_live = serializers.BooleanField()
 
 
 class PerformanceListDataSerializer(serializers.Serializer):
     festival_date = serializers.DateField()
-    server_time = serializers.CharField(
-        help_text="2026-09-29T16:30:00 (KST)"
-    )
+    server_time = serializers.CharField(help_text="2026-09-29T16:30:00 (KST)")
     performances = PerformanceListItemSerializer(many=True)
 
 
@@ -97,23 +89,19 @@ class PerformanceListResponseSerializer(serializers.Serializer):
 class SongSerializer(serializers.Serializer):
     song_id = serializers.IntegerField()
     title = serializers.CharField()
-    artist = serializers.CharField(allow_null=True)
+    artist = serializers.CharField(allow_null=True, allow_blank=True)
     sort_order = serializers.IntegerField()
 
 
 class PerformanceDetailDataSerializer(serializers.Serializer):
     performance_id = serializers.IntegerField()
     team_name = serializers.CharField()
-    affiliation = serializers.CharField(allow_null=True)
-    description = serializers.CharField(allow_null=True)
-    image_url = serializers.URLField(allow_null=True)
+    affiliation = serializers.CharField(allow_null=True, allow_blank=True)
+    description = serializers.CharField(allow_null=True, allow_blank=True)
+    image_url = serializers.URLField(allow_null=True, allow_blank=True)
     festival_date = serializers.DateField()
-    start_at = serializers.CharField(
-        help_text="2026-09-29T16:00:00 (KST)"
-    )
-    end_at = serializers.CharField(
-        help_text="2026-09-29T17:00:00 (KST)"
-    )
+    start_at = serializers.CharField(help_text="2026-09-29T16:00:00 (KST)")
+    end_at = serializers.CharField(help_text="2026-09-29T17:00:00 (KST)")
     songs = SongSerializer(many=True)
 
 
@@ -127,9 +115,7 @@ class PerformanceDetailResponseSerializer(serializers.Serializer):
 
 
 class PerformanceNowDataSerializer(serializers.Serializer):
-    server_time = serializers.CharField(
-        help_text="2026-09-29T15:20:00 (KST)"
-    )
+    server_time = serializers.CharField(help_text="2026-09-29T15:20:00 (KST)")
     performances = PerformanceListItemSerializer(many=True)
 
 

@@ -1,4 +1,3 @@
-"""Performances database models."""
 """공연 데이터베이스 모델."""
 
 from django.db import models
