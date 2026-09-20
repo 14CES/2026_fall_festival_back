@@ -94,9 +94,9 @@ class LanternViewSet(
             )
         serializer.save()
         return success_response(
-            code="LANTERN_CREATE_SUCCESS",
-            message="등불을 성공적으로 남겼어요!",
-            data=serializer.data,
+            "LANTERN_CREATE_SUCCESS",
+            "등불을 성공적으로 남겼어요!",
+            serializer.data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -120,9 +120,9 @@ class LanternViewSet(
             )
         serializer.save()
         return success_response(
-            code="LANTERN_UPDATE_SUCCESS",
-            message="등불이 수정되었습니다.",
-            data=serializer.data,
+            "LANTERN_UPDATE_SUCCESS",
+            "등불이 수정되었습니다.",
+            serializer.data,
         )
 
     def perform_destroy(self, instance):
