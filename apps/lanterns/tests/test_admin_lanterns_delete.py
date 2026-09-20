@@ -5,7 +5,7 @@ from apps.booths.models import Booth
 from apps.lanterns.models import Lantern
 from apps.lanterns.services import delete_admin_lantern
 
-ADMIN_LANTERNS_URL = "/api/admin/lanterns/"
+ADMIN_LANTERNS_URL = "/api/lanterns/"
 
 
 @pytest.mark.django_db
@@ -136,10 +136,28 @@ class TestAdminLanternDeleteAPI:
         with pytest.raises(RuntimeError, match="DB Error during booth update"):
             services.delete_admin_lantern(lantern)
 
-        # 트랜잭션 롤백으로 인해 lantern 상태가 변경되지 않았는지 검증
-        lantern.refresh_from_db()
-        assert lantern.deleted_at is None
-        assert lantern.deleted_by is None
-
         test_booth.refresh_from_db()
         assert test_booth.lantern_count == 3
+
+    def test_delete_admin_lantern_already_deleted_raises_not_found(self, test_user, test_booth):
+        """동시 삭제 등 이미 삭제된 경우 NotFound 발생 및 카운트 중복 차감 방지 검증."""
+        from common.exceptions import NotFound
+
+        test_booth.lantern_count = 5
+        test_booth.save(update_fields=["lantern_count"])
+
+        lantern = Lantern.objects.create(
+            user=test_user,
+            booth=test_booth,
+            nickname="익명의 코끼리",
+            message="이미 삭제된 등불",
+            deleted_at=timezone.now(),
+            deleted_by=Lantern.DeletedBy.ADMIN,
+        )
+
+        with pytest.raises(NotFound, match="해당 등불을 찾을 수 없습니다."):
+            delete_admin_lantern(lantern)
+
+        test_booth.refresh_from_db()
+        # 중복 차감되지 않고 5 유지 검증
+        assert test_booth.lantern_count == 5

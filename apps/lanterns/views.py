@@ -19,7 +19,7 @@ from common.exceptions import (
     custom_exception_handler,
 )
 from common.pagination import paginate
-from common.permissions import IsAdmin
+from common.permissions import IsAdmin, is_admin_request
 from common.responses import success_response
 
 from . import selectors, services
@@ -52,6 +52,8 @@ class LanternViewSet(
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
+            return [AllowAny()]
+        if self.action == "destroy" and is_admin_request(self.request):
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -134,6 +136,17 @@ class LanternViewSet(
             Booth.objects.filter(id=instance.booth_id).update(lantern_count=F("lantern_count") - 1)
 
     def destroy(self, request, *args, **kwargs):
+        if is_admin_request(request):
+            lantern = selectors.get_admin_lantern_by_id(lantern_id=kwargs.get("pk"))
+            if lantern is None:
+                raise NotFound("해당 등불을 찾을 수 없습니다.")
+            services.delete_admin_lantern(lantern)
+            return success_response(
+                "ADMIN_LANTERN_DELETE_SUCCESS",
+                "등불이 성공적으로 삭제되었습니다.",
+                {},
+            )
+
         instance = self.get_object()
         self.perform_destroy(instance)
         return success_response(
@@ -143,6 +156,35 @@ class LanternViewSet(
         )
 
     def list(self, request, *args, **kwargs):
+        if is_admin_request(request):
+            query_serializer = AdminLanternListQuerySerializer(data=request.query_params)
+            if not query_serializer.is_valid():
+                raise InvalidInput("입력값이 올바르지 않습니다.", errors=query_serializer.errors)
+
+            sort = query_serializer.validated_data["sort"]
+            page = query_serializer.validated_data["page"]
+            size = query_serializer.validated_data["size"]
+
+            queryset = selectors.get_admin_lanterns_queryset(sort=sort)
+            page_data = paginate(queryset, page=page, size=size)
+
+            lantern_ids = [lantern.id for lantern in page_data.items]
+            top_reasons = selectors.get_top_report_reasons_for_lanterns(lantern_ids)
+
+            items = [
+                to_admin_lantern_list_item(lantern, top_reasons.get(lantern.id))
+                for lantern in page_data.items
+            ]
+
+            return success_response(
+                "ADMIN_LANTERN_LIST_SUCCESS",
+                "관리자 등불 목록 조회에 성공했습니다.",
+                {
+                    "items": items,
+                    "meta": page_data.as_meta(),
+                },
+            )
+
         query = LanternListQuerySerializer(data=request.query_params)
         if not query.is_valid():
             raise InvalidInput(
@@ -173,6 +215,20 @@ class LanternViewSet(
         )
 
     def retrieve(self, request, *args, **kwargs):
+        if is_admin_request(request):
+            lantern = selectors.get_admin_lantern_by_id(lantern_id=kwargs.get("pk"))
+            if lantern is None:
+                raise NotFound("해당 등불을 찾을 수 없습니다.")
+
+            top_reasons = selectors.get_top_report_reasons_for_lanterns([lantern.id])
+            top_reason = top_reasons.get(lantern.id)
+
+            return success_response(
+                "ADMIN_LANTERN_DETAIL_SUCCESS",
+                "관리자 등불 신고 상세 조회에 성공했습니다.",
+                to_admin_lantern_detail(lantern, top_reason),
+            )
+
         lantern = selectors.get_lantern(self.kwargs["pk"])
         if lantern is None:
             raise NotFound(code="LANTERN_NOT_FOUND", message="존재하지 않는 등불입니다.")
@@ -262,11 +318,14 @@ class AdminLanternListView(AdminLanternAPIView):
 
 
 class AdminLanternDetailView(AdminLanternAPIView):
-    """관리자 등불 신고 확인 모달 상세 조회 API (GET /api/lanterns/<int:lantern_id>/)."""
+    """관리자 등불 상세 조회 및 블라인드(삭제) API."""
 
     @extend_schema(
         tags=["admin-lanterns"],
         summary="관리자 등불 신고 상세 확인 (모달)",
+        description=(
+            "특정 등불의 최다 신고 사유, 총 신고 횟수, 부스 정보 및 등불 원문을 조회합니다."
+        ),
         operation_id="admin_lantern_detail",
         responses={200: AdminLanternDetailSerializer},
     )
@@ -287,6 +346,10 @@ class AdminLanternDetailView(AdminLanternAPIView):
     @extend_schema(
         tags=["admin-lanterns"],
         summary="관리자 등불 삭제 (블라인드 처리)",
+        description=(
+            "관리자 권한으로 부적절한 등불을 블라인드(Soft Delete) 처리하고 "
+            "연관 부스의 등불 수를 1 차감합니다."
+        ),
         operation_id="admin_lantern_delete",
         responses={200: AdminLanternDeleteResponseSerializer},
     )

@@ -14,5 +14,4 @@ urlpatterns = [
     path("api/booths/", include("apps.booths.urls")),
     path("api/lanterns/", include("apps.lanterns.urls")),
     path("api/performances/", include("apps.performances.urls")),
-    path("api/admin/lanterns/", include("apps.lanterns.admin_urls")),
 ]
